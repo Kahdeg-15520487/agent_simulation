@@ -1,0 +1,58 @@
+# Visual Studio / .NET / C# Git ignore
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# Visual Studio folders
+.vs/
+.vscode/
+
+# Build results
+bin/
+obj/
+[Bb]uild/
+*/bin/
+*/obj/
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+project.assets.json
+project.lock.json
+package-lock.json
+
+# Rider / IDE
+.idea/
+
+# Resharper
+_ReSharper*/
+*.ReSharper.*
+
+# Publish / deployment
+publish/
+*.Publish.xml
+*.azurePubxml
+
+# Entity Framework / database
+*.dbmdl
+
+# Logs, temporary files
+*.log
+*.tmp
+*.cache
+
+# OS generated
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Visual Studio Code workspace
+*.code-workspace
+
+# Scaffolding
+ScaffoldingReadMe.txt
