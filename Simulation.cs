@@ -8,12 +8,12 @@ public class Simulation
     public List<Agent> Agents { get; set; } = new();
     public Scenario Scenario { get; set; }
 
-    public Simulation()
+    public Simulation(string llmEndpoint = "http://localhost:5000")
     {
         Scenario = new Scenario("Crashed Spaceship");
         Agents.Add(new Agent("Alice", "Brave"));
         Agents.Add(new Agent("Bob", "Cautious"));
-        Agents.Add(new Agent("Charlie", "Logical"));
+        Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
     }
 
     public void Run()

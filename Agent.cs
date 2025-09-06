@@ -18,14 +18,14 @@ public class Agent
         CurrentThought = "";
     }
 
-    public void Think(Scenario scenario)
+    public virtual void Think(Scenario scenario)
     {
         // Generate thought based on personality and scenario
         CurrentThought = GenerateThought(scenario);
         Memory.Add(CurrentThought);
     }
 
-    private string GenerateThought(Scenario scenario)
+    protected string GenerateThought(Scenario scenario)
     {
         var random = new Random();
         List<string> thoughts = new();
