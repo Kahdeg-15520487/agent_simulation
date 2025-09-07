@@ -28,6 +28,38 @@ If the LLM is unavailable, it falls back to personality-based thoughts.
 - Change the model in `Simulation.cs`: `new LLMAgent("Charlie", "Logical", "your-model")`
 - Change the endpoint: `new LLMAgent("Charlie", "Logical", "llama2", "http://your-endpoint:port")`
 
+## Time and Event System
+
+The simulation now includes a dynamic time system and random/conditional events that make each run unique:
+
+### Time System
+- **Simulation Time**: Tracks hours and days as the simulation progresses
+- **Configurable Pace**: Each scenario can have different hours per step
+- **Time-Based Events**: Events can trigger at specific times
+
+### Event System
+Events add unpredictability and challenge to scenarios:
+
+- **Event Types**: Positive (helpful), Negative (harmful), Neutral
+- **Trigger Types**:
+  - **Time-Based**: Trigger at specific simulation hours
+  - **Random**: Probability-based chance each step
+  - **Conditional**: Based on scenario state
+- **Event Effects**:
+  - Modify life support levels
+  - Change task progress
+  - Add new tasks
+  - Alter life support decay rate
+
+### Example Events
+- **Alien Storm**: Reduces life support and increases decay rate
+- **Resource Discovery**: Boosts resource gathering progress
+- **Equipment Failure**: Time-based event that damages engine repairs
+- **Zombie Horde**: Random attacks that threaten shelter integrity
+- **Survivor Group**: Adds new tasks and improves life support
+
+Events are displayed with 🚨 icons and logged for review at simulation end.
+
 ## How to Run
 
 1. Ensure you have .NET 8.0 installed.
@@ -42,4 +74,8 @@ If the LLM is unavailable, it falls back to personality-based thoughts.
 - `LLMAgent.cs`: Subclass of Agent that uses LLM for thinking.
 - `Task.cs`: Defines the Task class for scenario objectives.
 - `Scenario.cs`: Defines the Scenario class with tasks and life support.
+- `ScenarioDefinition.cs`: Defines scenario templates and configurations.
+- `ScenarioLibrary.cs`: Contains predefined scenario definitions.
+- `SimulationTime.cs`: Handles simulation time tracking.
+- `EventSystem.cs`: Defines events, effects, and event management.
 - `Simulation.cs`: Manages the simulation loop and agents.
