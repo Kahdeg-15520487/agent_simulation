@@ -63,8 +63,18 @@ public class Agent
             var random = new Random();
             var task = incompleteTasks[random.Next(incompleteTasks.Count)];
             var progressAmount = random.Next(5, 15);
+            var oldProgress = task.Progress;
             task.UpdateProgress(progressAmount);
+            
+            // Report progress made
             Console.WriteLine($"{Name} worked on {task.Name}: {CurrentThought}");
+            Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{progressAmount})");
+            
+            // Report if task was completed
+            if (task.IsCompleted && oldProgress < task.RequiredProgress)
+            {
+                Console.WriteLine($"  ✅ {task.Name} COMPLETED!");
+            }
         }
     }
 }

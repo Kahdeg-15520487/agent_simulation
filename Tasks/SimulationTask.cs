@@ -10,12 +10,14 @@ public class SimulationTask
     public int Progress { get; set; }
     public int RequiredProgress { get; set; }
     public bool IsCompleted { get; set; }
+    public TaskType Type { get; set; }
 
-    public SimulationTask(string name, string desc, int requiredProgress = 100)
+    public SimulationTask(string name, string desc, int requiredProgress = 100, TaskType type = TaskType.Other)
     {
         Name = name;
         Description = desc;
         RequiredProgress = requiredProgress;
+        Type = type;
     }
 
     public void UpdateProgress(int amount)

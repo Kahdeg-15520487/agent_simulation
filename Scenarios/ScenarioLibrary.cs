@@ -22,9 +22,9 @@ public static class ScenarioLibrary
 
         definition.TaskDefinitions.AddRange(new[]
         {
-            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 100),
-            new TaskDefinition("Gather Resources", "Collect materials from the planet for repairs.", 80),
-            new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60)
+            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 100, TaskType.Engineering),
+            new TaskDefinition("Gather Resources", "Collect materials from the planet for repairs.", 80, TaskType.Resource),
+            new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance)
         });
 
         // Add events
@@ -76,10 +76,10 @@ public static class ScenarioLibrary
 
         definition.TaskDefinitions.AddRange(new[]
         {
-            new TaskDefinition("Fortify Shelter", "Build defenses against zombie attacks.", 120),
-            new TaskDefinition("Find Cure", "Research and develop a zombie cure.", 150),
-            new TaskDefinition("Gather Supplies", "Collect food, water, and medical supplies.", 90),
-            new TaskDefinition("Clear Zombies", "Eliminate zombies from the immediate area.", 100)
+            new TaskDefinition("Fortify Shelter", "Build defenses against zombie attacks.", 120, TaskType.Engineering),
+            new TaskDefinition("Find Cure", "Research and develop a zombie cure.", 150, TaskType.Research),
+            new TaskDefinition("Gather Supplies", "Collect food, water, and medical supplies.", 90, TaskType.Resource),
+            new TaskDefinition("Clear Zombies", "Eliminate zombies from the immediate area.", 100, TaskType.Combat)
         });
 
         // Add events
@@ -132,10 +132,10 @@ public static class ScenarioLibrary
 
         definition.TaskDefinitions.AddRange(new[]
         {
-            new TaskDefinition("Fix Oxygen System", "Repair the oxygen recycling system.", 80),
-            new TaskDefinition("Restore Power", "Fix the main power generator.", 100),
-            new TaskDefinition("Seal Hull Breaches", "Repair structural damage to the station.", 90),
-            new TaskDefinition("Reboot Computers", "Restart and reprogram station computers.", 70)
+            new TaskDefinition("Fix Oxygen System", "Repair the oxygen recycling system.", 80, TaskType.Maintenance),
+            new TaskDefinition("Restore Power", "Fix the main power generator.", 100, TaskType.Engineering),
+            new TaskDefinition("Seal Hull Breaches", "Repair structural damage to the station.", 90, TaskType.Engineering),
+            new TaskDefinition("Reboot Computers", "Restart and reprogram station computers.", 70, TaskType.Engineering)
         });
 
         return definition;

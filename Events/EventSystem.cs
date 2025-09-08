@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AgentSimulation.Core;
 
 namespace AgentSimulation.Events;
 
@@ -69,5 +70,20 @@ public class ActiveEvent
     {
         Definition = definition;
         HasTriggered = false;
+    }
+}
+
+public class EventLogEntry
+{
+    public string EventName { get; set; }
+    public string EventDescription { get; set; }
+    public string TimeStamp { get; set; }
+    public List<string> Effects { get; set; } = new();
+
+    public EventLogEntry(string name, string description, SimulationTime time)
+    {
+        EventName = name;
+        EventDescription = description;
+        TimeStamp = time.ToString();
     }
 }
