@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AgentSimulation.Events;
+using AgentSimulation.Tasks;
+using AgentSimulation.Core;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Scenarios;
 
 public class Scenario
 {
     public string Name { get; set; }
     public string Description { get; set; }
-    public List<Task> Tasks { get; set; } = new();
+    public List<SimulationTask> Tasks { get; set; } = new();
     public int LifeSupport { get; set; }
     public int LifeSupportDecay { get; set; }
     public string? WinCondition { get; set; }
@@ -32,7 +35,7 @@ public class Scenario
         // Create tasks from definitions
         foreach (var taskDef in definition.TaskDefinitions)
         {
-            Tasks.Add(new Task(taskDef.Name, taskDef.Description, taskDef.RequiredProgress));
+            Tasks.Add(new SimulationTask(taskDef.Name, taskDef.Description, taskDef.RequiredProgress));
         }
 
         // Initialize active events
@@ -126,7 +129,7 @@ public class Scenario
             case EventEffect.EffectType.AddNewTask:
                 if (!string.IsNullOrEmpty(effect.NewTaskName) && !string.IsNullOrEmpty(effect.NewTaskDescription))
                 {
-                    var newTask = new Task(effect.NewTaskName, effect.NewTaskDescription, effect.Value > 0 ? effect.Value : 100);
+                    var newTask = new SimulationTask(effect.NewTaskName, effect.NewTaskDescription, effect.Value > 0 ? effect.Value : 100);
                     Tasks.Add(newTask);
                     Console.WriteLine($"New task added: {effect.NewTaskName}");
                 }

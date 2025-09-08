@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Tasks;
 
-public class Task
+public class SimulationTask
 {
     public string Name { get; set; }
     public string Description { get; set; }
@@ -11,7 +11,7 @@ public class Task
     public int RequiredProgress { get; set; }
     public bool IsCompleted { get; set; }
 
-    public Task(string name, string desc, int requiredProgress = 100)
+    public SimulationTask(string name, string desc, int requiredProgress = 100)
     {
         Name = name;
         Description = desc;

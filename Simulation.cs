@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using AgentSimulation.Agents;
+using AgentSimulation.Scenarios;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Core;
 
 public class Simulation
 {

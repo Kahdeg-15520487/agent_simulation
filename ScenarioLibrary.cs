@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using AgentSimulation.Events;
+using AgentSimulation.Tasks;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Scenarios;
 
 public static class ScenarioLibrary
 {

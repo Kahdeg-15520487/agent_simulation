@@ -5,8 +5,9 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AgentSimulation.Scenarios;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Agents;
 
 public class LLMAgent : Agent
 {

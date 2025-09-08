@@ -1,6 +1,6 @@
 using System;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Core;
 
 public class SimulationTime
 {

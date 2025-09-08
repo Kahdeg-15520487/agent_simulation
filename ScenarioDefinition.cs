@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using AgentSimulation.Events;
+using AgentSimulation.Tasks;
 
-namespace AgentSimulation;
+namespace AgentSimulation.Scenarios;
 
 public class ScenarioDefinition
 {
@@ -20,19 +22,5 @@ public class ScenarioDefinition
         Description = description;
         WinCondition = "Complete all tasks before life support fails";
         LoseCondition = "Life support reaches 0";
-    }
-}
-
-public class TaskDefinition
-{
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public int RequiredProgress { get; set; } = 100;
-
-    public TaskDefinition(string name, string description, int requiredProgress = 100)
-    {
-        Name = name;
-        Description = description;
-        RequiredProgress = requiredProgress;
     }
 }

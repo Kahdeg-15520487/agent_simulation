@@ -1,4 +1,7 @@
-﻿namespace AgentSimulation;
+﻿using AgentSimulation.Core;
+using AgentSimulation.Scenarios;
+
+namespace AgentSimulation;
 
 internal class Program
 {
