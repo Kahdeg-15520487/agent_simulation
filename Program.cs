@@ -7,23 +7,48 @@ internal class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("Available Scenarios:");
-        var scenarios = ScenarioLibrary.GetAllScenarios();
-        for (int i = 0; i < scenarios.Count; i++)
-        {
-            Console.WriteLine($"{i + 1}. {scenarios[i].Name}");
-            Console.WriteLine($"   {scenarios[i].Description}");
-        }
+        Console.WriteLine("🎮 AGENT SIMULATION");
+        Console.WriteLine("==================");
+        Console.WriteLine("Welcome to the Agent Simulation! Work together with your team to survive challenging scenarios.");
         Console.WriteLine();
-
-        // Default to zombie apocalypse scenario to test the enhanced version
-        var scenarioDefinition = ScenarioLibrary.GetZombieApocalypseScenario();
-
-        // Uncomment to use different scenarios:
-        // var scenarioDefinition = ScenarioLibrary.GetCrashedSpaceshipScenario();
-        // var scenarioDefinition = ScenarioLibrary.GetSpaceStationScenario();
-
-        var sim = new Simulation(scenarioDefinition, "http://localhost:8080", 0);
+        
+        // Let user select scenario
+        var scenarioDefinition = ScenarioSelector.SelectScenario();
+        
+        // Let user create their team
+        var team = TeamBuilder.CreateTeam();
+        
+        // Ask if they want to see tips
+        Console.WriteLine("Would you like to see gameplay tips? (y/n)");
+        var showTips = Console.ReadLine()?.ToLower();
+        if (showTips == "y" || showTips == "yes")
+        {
+            ShowGameplayTips();
+        }
+        
+        Console.WriteLine("🚀 Starting simulation...");
+        Console.WriteLine(new string('=', 60));
+        Console.WriteLine();
+        
+        var sim = new Simulation(scenarioDefinition, team);
         sim.Run();
+    }
+    
+    private static void ShowGameplayTips()
+    {
+        Console.WriteLine();
+        Console.WriteLine("💡 GAMEPLAY TIPS");
+        Console.WriteLine("===============");
+        Console.WriteLine("• 🏥 Higher life support = better task efficiency bonuses");
+        Console.WriteLine("• 🛡️  Completing defense tasks reduces damage from attacks");
+        Console.WriteLine("• 🔧 Maintenance tasks reduce life support decay");
+        Console.WriteLine("• 📊 Check colony stats to see your current capabilities");
+        Console.WriteLine("• ⚡ Choose effort levels wisely - higher effort = more progress");
+        Console.WriteLine("• 🎯 Focus on tasks that complement your team's strengths");
+        Console.WriteLine("• 🤝 Work together - some tasks benefit from previous completions");
+        Console.WriteLine();
+        Console.WriteLine("Press Enter to continue...");
+        Console.ReadLine();
+        Console.WriteLine();
     }
 }

@@ -10,12 +10,29 @@ public class Simulation
     public List<Agent> Agents { get; set; } = new();
     public Scenario Scenario { get; set; }
 
-    public Simulation(ScenarioDefinition scenarioDefinition, string llmEndpoint = "http://localhost:5000", int seed = -1)
+    public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, int seed = -1)
     {
         Scenario = new Scenario(scenarioDefinition, seed);
-        Agents.Add(new Agent("Alice", "Brave"));
-        Agents.Add(new Agent("Bob", "Cautious"));
-        Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
+        Agents = agents;
+    }
+
+    // Legacy constructor for backward compatibility
+    public Simulation(ScenarioDefinition scenarioDefinition, string llmEndpoint = "http://localhost:5000", int seed = -1, bool includeHuman = false)
+    {
+        Scenario = new Scenario(scenarioDefinition, seed);
+        
+        if (includeHuman)
+        {
+            Agents.Add(new HumanAgent("Player"));
+            Agents.Add(new Agent("Alice", "Brave"));
+            Agents.Add(new Agent("Bob", "Cautious"));
+        }
+        else
+        {
+            Agents.Add(new Agent("Alice", "Brave"));
+            Agents.Add(new Agent("Bob", "Cautious"));
+            Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
+        }
     }
 
     public void Run()
@@ -24,6 +41,22 @@ public class Simulation
         Console.WriteLine(Scenario.Description);
         if (Scenario.WinCondition != null) Console.WriteLine($"Win: {Scenario.WinCondition}");
         if (Scenario.LoseCondition != null) Console.WriteLine($"Lose: {Scenario.LoseCondition}");
+        Console.WriteLine();
+        
+        // Show team composition
+        Console.WriteLine("👥 TEAM ROSTER");
+        Console.WriteLine("=============");
+        for (int i = 0; i < Agents.Count; i++)
+        {
+            var agent = Agents[i];
+            var agentType = agent switch
+            {
+                HumanAgent => "🎮 Human Player",
+                LLMAgent => "🧠 AI Assistant",
+                _ => "🤖 Basic AI"
+            };
+            Console.WriteLine($"{i + 1}. {agent.Name} - {agentType} ({agent.Personality})");
+        }
         Console.WriteLine();
 
         int steps = 0;
@@ -43,6 +76,12 @@ public class Simulation
             {
                 agent.Think(Scenario);
                 agent.Act(Scenario);
+                
+                // Add spacing after human player turn for better readability
+                if (agent is HumanAgent)
+                {
+                    Console.WriteLine(new string('=', 50));
+                }
             }
 
             Scenario.Update();

@@ -54,7 +54,7 @@ public class Agent
         return thoughts[random.Next(thoughts.Count)];
     }
 
-    public void Act(Scenario scenario)
+    public virtual void Act(Scenario scenario)
     {
         // Choose a random incomplete task to work on
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
