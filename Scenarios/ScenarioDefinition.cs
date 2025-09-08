@@ -13,6 +13,7 @@ public class ScenarioDefinition
     public int HoursPerStep { get; set; } = 1; // How many hours pass per simulation step
     public List<EventDefinition> EventDefinitions { get; set; } = new();
     public List<TaskDefinition> TaskDefinitions { get; set; } = new();
+    public List<string> WinConditionTasks { get; set; } = new(); // Tasks that must be completed to win
     public string? WinCondition { get; set; } // Description of how to win
     public string? LoseCondition { get; set; } // Description of how to lose
 

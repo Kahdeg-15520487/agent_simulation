@@ -10,25 +10,180 @@ public static class ScenarioLibrary
     {
         var definition = new ScenarioDefinition(
             "Crashed Spaceship",
-            "Your spaceship has crashed on an alien planet. You must repair it and maintain life support to survive."
+            "Your spaceship has crashed on a hostile alien planet after a navigation failure. The ship is badly damaged, multiple systems are offline, and the alien environment poses constant threats. You must assess the damage, repair critical systems, establish survival protocols, and find a way off the planet before your resources run out. The alien wildlife is dangerous, the weather is unpredictable, and every decision could mean the difference between survival and disaster."
         )
         {
             InitialLifeSupport = 100,
             LifeSupportDecay = 5,
             HoursPerStep = 2, // 2 hours per step
-            WinCondition = "Complete all tasks before life support fails",
-            LoseCondition = "Life support reaches 0"
+            WinCondition = "Repair the engine, establish sustainable survival systems, and prepare for takeoff",
+            LoseCondition = "Life support reaches 0 or crew morale collapses"
         };
 
         definition.TaskDefinitions.AddRange(new[]
         {
-            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 100, TaskType.Engineering),
-            new TaskDefinition("Gather Resources", "Collect materials from the planet for repairs.", 80, TaskType.Resource),
+            // Core Engineering Tasks
+            new TaskDefinition("Assess Ship Damage", "Survey the crash site and catalog all damage to critical systems.", 40, TaskType.Engineering)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Repair Hull Breach",
+                        NewTaskDescription = "Seal the main hull breach to prevent atmosphere loss.",
+                        NewTaskRequiredProgress = 80,
+                        NewTaskType = TaskType.Engineering
+                    },
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Salvage Ship Components",
+                        NewTaskDescription = "Recover usable parts from damaged ship sections.",
+                        NewTaskRequiredProgress = 60,
+                        NewTaskType = TaskType.Resource
+                    }
+                }
+            },
+            
+            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 120, TaskType.Engineering)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Test Engine Systems",
+                        NewTaskDescription = "Run diagnostics and test the repaired engine before takeoff.",
+                        NewTaskRequiredProgress = 50,
+                        NewTaskType = TaskType.Engineering,
+                        NewTaskCompleteActions = new List<TaskCompletionAction>
+                        {
+                            new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                            {
+                                NewTaskName = "Launch Sequence",
+                                NewTaskDescription = "Initiate final pre-flight checks and launch the repaired spaceship.",
+                                NewTaskRequiredProgress = 100,
+                                NewTaskType = TaskType.Engineering
+                            }
+                        }
+                    },
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, 20)
+                }
+            },
+            
+            // Resource and Survival Tasks
+            new TaskDefinition("Gather Resources", "Collect materials from the planet for repairs.", 80, TaskType.Resource)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Establish Supply Cache",
+                        NewTaskDescription = "Create a storage area for collected materials and supplies.",
+                        NewTaskRequiredProgress = 40,
+                        NewTaskType = TaskType.Engineering
+                    }
+                }
+            },
+            
+            new TaskDefinition("Scout Planet Surface", "Explore the alien planet to find resources and assess threats.", 70, TaskType.Navigation)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Establish Perimeter Defense",
+                        NewTaskDescription = "Set up defensive measures against hostile alien wildlife.",
+                        NewTaskRequiredProgress = 90,
+                        NewTaskType = TaskType.Combat
+                    },
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Water Purification System",
+                        NewTaskDescription = "Create a system to purify alien water sources for consumption.",
+                        NewTaskRequiredProgress = 60,
+                        NewTaskType = TaskType.Survival,
+                        IsRecurring = true
+                    }
+                }
+            },
+            
+            // Life Support and Maintenance
             new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.DecreaseLifeSupportDecay, 2),
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Upgrade Life Support",
+                        NewTaskDescription = "Improve life support systems with alien technology.",
+                        NewTaskRequiredProgress = 100,
+                        NewTaskType = TaskType.Engineering
+                    }
+                }
+            },
+            
+            // Survival Tasks (Recurring)
+            new TaskDefinition("Emergency Food Rationing", "Manage and distribute emergency food supplies.", 30, TaskType.Survival)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, 8),
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Emergency Food Rationing",
+                        NewTaskDescription = "Continue managing food supplies to maintain crew health.",
+                        NewTaskRequiredProgress = 30,
+                        NewTaskType = TaskType.Survival,
+                        IsRecurring = true
+                    }
+                }
+            },
+            
+            new TaskDefinition("Shelter Maintenance", "Maintain and improve temporary shelter facilities.", 40, TaskType.Survival)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, 10),
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Shelter Maintenance",
+                        NewTaskDescription = "Continue maintaining shelter to protect against alien environment.",
+                        NewTaskRequiredProgress = 40,
+                        NewTaskType = TaskType.Survival,
+                        IsRecurring = true
+                    }
+                }
+            },
+            
+            // Research and Communication
+            new TaskDefinition("Analyze Alien Environment", "Study the planet's atmosphere, flora, and fauna.", 80, TaskType.Research)
+            {
+                CompletionActions = new List<TaskCompletionAction>
+                {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Develop Environmental Adaptation",
+                        NewTaskDescription = "Create equipment and protocols to better survive the alien environment.",
+                        NewTaskRequiredProgress = 70,
+                        NewTaskType = TaskType.Medical
+                    },
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
+                    {
+                        NewTaskName = "Harvest Edible Alien Plants",
+                        NewTaskDescription = "Safely identify and harvest alien vegetation for food.",
+                        NewTaskRequiredProgress = 50,
+                        NewTaskType = TaskType.Survival,
+                        IsRecurring = true
+                    }
+                }
+            }
         });
 
-        // Add events
-        var stormEvent = new EventDefinition("Alien Storm", "A massive storm approaches, threatening the ship.", EventType.Negative)
+        // Set win condition - only need to complete the Launch Sequence
+        definition.WinConditionTasks.Add("Launch Sequence");
+
+        // Add enhanced events that interact with new tasks
+        var stormEvent = new EventDefinition("Alien Storm", "A massive electrical storm hits the crash site!", EventType.Negative)
         {
             Trigger = EventTrigger.Random,
             TriggerProbability = 0.15, // 15% chance per step
@@ -36,18 +191,20 @@ public static class ScenarioLibrary
         };
         stormEvent.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -20));
         stormEvent.Effects.Add(new EventEffect(EventEffect.EffectType.ChangeLifeSupportDecay, 2));
+        stormEvent.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -15) { TaskName = "Shelter Maintenance" });
         definition.EventDefinitions.Add(stormEvent);
 
-        var resourceDiscovery = new EventDefinition("Resource Discovery", "You find a cache of useful materials nearby.", EventType.Positive)
+        var resourceDiscovery = new EventDefinition("Mineral Deposits Found", "Your scouts discover rich mineral deposits nearby!", EventType.Positive)
         {
             Trigger = EventTrigger.Random,
-            TriggerProbability = 0.1, // 10% chance per step
+            TriggerProbability = 0.12, // 12% chance per step
             IsOneTime = false
         };
         resourceDiscovery.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 25) { TaskName = "Gather Resources" });
+        resourceDiscovery.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 20) { TaskName = "Salvage Ship Components" });
         definition.EventDefinitions.Add(resourceDiscovery);
 
-        var equipmentFailure = new EventDefinition("Equipment Failure", "Critical equipment breaks down.", EventType.Negative)
+        var equipmentFailure = new EventDefinition("System Malfunction", "Critical ship systems experience cascading failures.", EventType.Negative)
         {
             Trigger = EventTrigger.TimeBased,
             TriggerHour = 10, // Happens at hour 10
@@ -55,7 +212,51 @@ public static class ScenarioLibrary
         };
         equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -30) { TaskName = "Fix Engine" });
         equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -15));
+        equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -20) { TaskName = "Maintain Life Support" });
         definition.EventDefinitions.Add(equipmentFailure);
+
+        var alienEncounter = new EventDefinition("Hostile Wildlife", "Dangerous alien creatures attack the crash site!", EventType.Negative)
+        {
+            Trigger = EventTrigger.Random,
+            TriggerProbability = 0.08, // 8% chance per step
+            IsOneTime = false
+        };
+        alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -10));
+        alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -25) { TaskName = "Scout Planet Surface" });
+        alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 60) 
+            { NewTaskName = "Treat Injuries", NewTaskDescription = "Provide medical care for crew injured in the alien attack." });
+        definition.EventDefinitions.Add(alienEncounter);
+
+        var ediblePlantsFound = new EventDefinition("Edible Flora Discovery", "You identify safe, nutritious alien plants!", EventType.Positive)
+        {
+            Trigger = EventTrigger.TimeBased,
+            TriggerHour = 16, // Happens at hour 16
+            IsOneTime = true
+        };
+        ediblePlantsFound.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 35) { TaskName = "Harvest Edible Alien Plants" });
+        ediblePlantsFound.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, 15));
+        definition.EventDefinitions.Add(ediblePlantsFound);
+
+        var techBreakthrough = new EventDefinition("Engineering Breakthrough", "Your team discovers innovative repair techniques!", EventType.Positive)
+        {
+            Trigger = EventTrigger.Random,
+            TriggerProbability = 0.06, // 6% chance per step (rare but powerful)
+            IsOneTime = false
+        };
+        techBreakthrough.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 40) { TaskName = "Fix Engine" });
+        techBreakthrough.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 30) { TaskName = "Upgrade Life Support" });
+        definition.EventDefinitions.Add(techBreakthrough);
+
+        var waterSource = new EventDefinition("Clean Water Source", "A natural spring of pure water is discovered!", EventType.Positive)
+        {
+            Trigger = EventTrigger.TimeBased,
+            TriggerHour = 8, // Happens at hour 8
+            IsOneTime = true
+        };
+        waterSource.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 45) { TaskName = "Water Purification System" });
+        waterSource.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, 20));
+        waterSource.Effects.Add(new EventEffect(EventEffect.EffectType.ChangeLifeSupportDecay, -1));
+        definition.EventDefinitions.Add(waterSource);
 
         return definition;
     }
@@ -84,8 +285,29 @@ public static class ScenarioLibrary
             new TaskDefinition("Establish Communication", "Set up radio equipment to contact other survivor groups.", 60, TaskType.Engineering),
             new TaskDefinition("Treat Infected Wounds", "Provide medical care to prevent team members from turning.", 70, TaskType.Medical),
             new TaskDefinition("Secure Weapon Cache", "Find and secure firearms, ammunition, and melee weapons.", 50, TaskType.Resource),
-            new TaskDefinition("Maintain Quarantine Protocol", "Isolate potentially infected areas and materials.", 40, TaskType.Maintenance)
+            new TaskDefinition("Maintain Quarantine Protocol", "Isolate potentially infected areas and materials.", 40, TaskType.Maintenance),
+            
+            // Survival tasks that provide ongoing benefits and recur
+            new TaskDefinition("Prepare Daily Meals", "Cook and distribute food to maintain team nutrition and morale.", 60, TaskType.Survival)
+                .GivesLifeSupportOnCompletion(8)
+                .AddsTaskOnCompletion("Prepare Daily Meals", "Cook and distribute food to maintain team nutrition and morale.", 60, TaskType.Survival, true),
+                
+            new TaskDefinition("Maintain Water Supplies", "Purify water, check storage tanks, and ration distribution.", 50, TaskType.Survival)
+                .GivesLifeSupportOnCompletion(6)
+                .AddsTaskOnCompletion("Maintain Water Supplies", "Purify water, check storage tanks, and ration distribution.", 50, TaskType.Survival, true),
+                
+            new TaskDefinition("Check Shelter Integrity", "Inspect walls, doors, and windows for damage or weaknesses.", 40, TaskType.Survival)
+                .GivesLifeSupportOnCompletion(4)
+                .AddsTaskOnCompletion("Check Shelter Integrity", "Inspect walls, doors, and windows for damage or weaknesses.", 40, TaskType.Survival, true),
+                
+            // Win Condition Task - Only available once other key tasks are completed
+            new TaskDefinition("Establish Safe Zone", "Create a permanent, secure settlement for survivors with the cure and defenses in place.", 150, TaskType.Engineering)
         });
+
+        // Set win condition tasks - need to complete the cure, clear area, and establish safe zone
+        definition.WinConditionTasks.Add("Find Cure");
+        definition.WinConditionTasks.Add("Clear Immediate Area");
+        definition.WinConditionTasks.Add("Establish Safe Zone");
 
         // Enhanced event system with multiple zombie encounter types
         var zombieHorde = new EventDefinition("Zombie Horde Attack", "A massive horde of zombies breaks through your outer defenses!", EventType.Negative)

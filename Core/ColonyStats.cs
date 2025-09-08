@@ -197,6 +197,9 @@ public class ColonyStats
                 if (CommunicationRange > 20)
                     bonus += 2; // Better coordination helps engineering
                 break;
+            case TaskType.Survival:
+                bonus += (int)(LifeSupportEfficiency * 5); // Survival benefits from life support systems
+                break;
         }
         
         return Math.Max(0, bonus);

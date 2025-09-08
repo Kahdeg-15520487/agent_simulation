@@ -10,7 +10,7 @@ public class Simulation
     public List<Agent> Agents { get; set; } = new();
     public Scenario Scenario { get; set; }
 
-    public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, int seed = -1)
+    public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, string llmEndpoint = "http://localhost:5000", int seed = -1)
     {
         Scenario = new Scenario(scenarioDefinition, seed);
         Agents = agents;

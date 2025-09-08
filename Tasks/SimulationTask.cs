@@ -11,6 +11,8 @@ public class SimulationTask
     public int RequiredProgress { get; set; }
     public bool IsCompleted { get; set; }
     public TaskType Type { get; set; }
+    public List<TaskCompletionAction> CompletionActions { get; set; } = new();
+    public bool HasTriggeredCompletion { get; set; } = false; // Prevent multiple triggers
 
     public SimulationTask(string name, string desc, int requiredProgress = 100, TaskType type = TaskType.Other)
     {
@@ -20,6 +22,16 @@ public class SimulationTask
         Type = type;
     }
 
+    // Constructor that accepts completion actions
+    public SimulationTask(TaskDefinition definition)
+    {
+        Name = definition.Name;
+        Description = definition.Description;
+        RequiredProgress = definition.RequiredProgress;
+        Type = definition.Type;
+        CompletionActions = new List<TaskCompletionAction>(definition.CompletionActions);
+    }
+
     public void UpdateProgress(int amount)
     {
         Progress += amount;
@@ -27,5 +39,17 @@ public class SimulationTask
         {
             IsCompleted = true;
         }
+    }
+
+    // Check if this task should trigger completion actions
+    public bool ShouldTriggerCompletionActions()
+    {
+        return IsCompleted && !HasTriggeredCompletion && CompletionActions.Count > 0;
+    }
+
+    // Mark completion actions as triggered
+    public void MarkCompletionActionsTriggered()
+    {
+        HasTriggeredCompletion = true;
     }
 }

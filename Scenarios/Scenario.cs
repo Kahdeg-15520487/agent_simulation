@@ -23,10 +23,12 @@ public class Scenario
     public List<string> EventLog { get; set; } = new(); // Keep for backward compatibility
     public int HoursPerStep { get; set; }
     public ColonyStats ColonyStats { get; set; } = new(); // Add colony stats
+    public ScenarioDefinition Definition { get; private set; } // Store reference to definition
     private Random random;
 
     public Scenario(ScenarioDefinition definition, int seed = -1)
     {
+        Definition = definition; // Store the definition
         Name = definition.Name;
         Description = definition.Description;
         LifeSupport = definition.InitialLifeSupport;
@@ -40,7 +42,7 @@ public class Scenario
         // Create tasks from definitions
         foreach (var taskDef in definition.TaskDefinitions)
         {
-            Tasks.Add(new SimulationTask(taskDef.Name, taskDef.Description, taskDef.RequiredProgress, taskDef.Type));
+            Tasks.Add(new SimulationTask(taskDef));
         }
 
         // Initialize active events
@@ -84,6 +86,9 @@ public class Scenario
         ActualLifeSupportDecay = actualDecay; // Track the actual decay being applied
         LifeSupport -= actualDecay;
         if (LifeSupport <= 0) Console.WriteLine("Life support failed!");
+
+        // Process task completion actions
+        ProcessTaskCompletionActions();
 
         // Check for events
         CheckAndTriggerEvents();
@@ -216,7 +221,10 @@ public class Scenario
 
     public bool IsResolved => Tasks.All(t => t.IsCompleted) && LifeSupport > 0;
     public bool HasFailed => LifeSupport <= 0;
-    public bool IsSuccessful => Tasks.All(t => t.IsCompleted) && LifeSupport > 0;
+    public bool IsSuccessful => 
+        LifeSupport > 0 && 
+        (Definition.WinConditionTasks.Count == 0 || 
+         Definition.WinConditionTasks.All(taskName => Tasks.Any(t => t.Name == taskName && t.IsCompleted)));
 
     // Life support related task queries
     public List<SimulationTask> GetLifeSupportTasks() => Tasks.Where(t => t.Type == TaskType.Maintenance).ToList();
@@ -227,5 +235,56 @@ public class Scenario
         var maintenanceTasks = Tasks.Where(t => t.Type == TaskType.Maintenance).ToList();
         if (!maintenanceTasks.Any()) return 0.0;
         return (double)maintenanceTasks.Count(t => t.IsCompleted) / maintenanceTasks.Count;
+    }
+
+    private void ProcessTaskCompletionActions()
+    {
+        var tasksWithCompletionActions = Tasks.Where(t => t.ShouldTriggerCompletionActions()).ToList();
+        
+        foreach (var task in tasksWithCompletionActions)
+        {
+            Console.WriteLine($"🎯 Task '{task.Name}' completed - triggering effects...");
+            
+            foreach (var action in task.CompletionActions)
+            {
+                switch (action.Type)
+                {
+                    case TaskCompletionAction.ActionType.AddNewTask:
+                        if (!string.IsNullOrEmpty(action.NewTaskName))
+                        {
+                            var newTaskDef = new TaskDefinition(
+                                action.NewTaskName, 
+                                action.NewTaskDescription ?? "Automatically generated task", 
+                                action.NewTaskRequiredProgress, 
+                                action.NewTaskType);
+                            
+                            // If it's a recurring task, add the same completion actions
+                            if (action.IsRecurring)
+                            {
+                                newTaskDef.CompletionActions.AddRange(task.CompletionActions);
+                            }
+                            
+                            var newTask = new SimulationTask(newTaskDef);
+                            Tasks.Add(newTask);
+                            Console.WriteLine($"   ➕ New task added: '{action.NewTaskName}' ({action.NewTaskType})");
+                        }
+                        break;
+                        
+                    case TaskCompletionAction.ActionType.IncreaseLifeSupport:
+                        var oldLife = LifeSupport;
+                        LifeSupport = Math.Min(200, LifeSupport + action.Value);
+                        Console.WriteLine($"   💚 Life support increased: {oldLife} → {LifeSupport} (+{action.Value})");
+                        break;
+                        
+                    case TaskCompletionAction.ActionType.DecreaseLifeSupportDecay:
+                        var oldDecay = LifeSupportDecay;
+                        LifeSupportDecay = Math.Max(0, LifeSupportDecay - action.Value);
+                        Console.WriteLine($"   ⬇️ Life support decay reduced: {oldDecay} → {LifeSupportDecay} (-{action.Value})");
+                        break;
+                }
+            }
+            
+            task.MarkCompletionActionsTriggered();
+        }
     }
 }

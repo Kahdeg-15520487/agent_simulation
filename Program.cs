@@ -30,7 +30,7 @@ internal class Program
         Console.WriteLine(new string('=', 60));
         Console.WriteLine();
         
-        var sim = new Simulation(scenarioDefinition, team);
+        var sim = new Simulation(scenarioDefinition, team, "http://localhost:8080");
         sim.Run();
     }
     
