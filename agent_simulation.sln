@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "agent_simulation", "agent_simulation.csproj", "{9A912126-1EB9-F8DC-1711-3E61601B01D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "agent_simulation", "agent_simulation/agent_simulation.csproj", "{9A912126-1EB9-F8DC-1711-3E61601B01D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
