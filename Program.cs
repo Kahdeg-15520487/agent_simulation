@@ -16,14 +16,14 @@ internal class Program
         }
         Console.WriteLine();
 
-        // Default to crashed spaceship scenario
-        var scenarioDefinition = ScenarioLibrary.GetCrashedSpaceshipScenario();
+        // Default to zombie apocalypse scenario to test the enhanced version
+        var scenarioDefinition = ScenarioLibrary.GetZombieApocalypseScenario();
 
         // Uncomment to use different scenarios:
-        // var scenarioDefinition = ScenarioLibrary.GetZombieApocalypseScenario();
+        // var scenarioDefinition = ScenarioLibrary.GetCrashedSpaceshipScenario();
         // var scenarioDefinition = ScenarioLibrary.GetSpaceStationScenario();
 
-        var sim = new Simulation(scenarioDefinition,"http://localhost:8080");
+        var sim = new Simulation(scenarioDefinition, "http://localhost:8080", 0);
         sim.Run();
     }
 }

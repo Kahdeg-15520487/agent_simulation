@@ -10,9 +10,9 @@ public class Simulation
     public List<Agent> Agents { get; set; } = new();
     public Scenario Scenario { get; set; }
 
-    public Simulation(ScenarioDefinition scenarioDefinition, string llmEndpoint = "http://localhost:5000")
+    public Simulation(ScenarioDefinition scenarioDefinition, string llmEndpoint = "http://localhost:5000", int seed = -1)
     {
-        Scenario = new Scenario(scenarioDefinition);
+        Scenario = new Scenario(scenarioDefinition, seed);
         Agents.Add(new Agent("Alice", "Brave"));
         Agents.Add(new Agent("Bob", "Cautious"));
         Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
@@ -30,28 +30,28 @@ public class Simulation
         while (steps < 50) // Continue until max steps
         {
             Console.WriteLine($"Step {steps + 1} - {Scenario.Time}");
-            
+
             // Check if mission is successful before continuing
             if (Scenario.IsSuccessful)
             {
                 Console.WriteLine("🎉 Mission accomplished! All tasks completed!");
                 break;
             }
-            
+
             // Agents continue to act
             foreach (var agent in Agents)
             {
                 agent.Think(Scenario);
                 agent.Act(Scenario);
             }
-            
+
             Scenario.Update();
-            
+
             // Show life support status with maintenance task information
-            var decayDisplay = Scenario.ActualLifeSupportDecay != Scenario.LifeSupportDecay 
+            var decayDisplay = Scenario.ActualLifeSupportDecay != Scenario.LifeSupportDecay
                 ? $"{Scenario.ActualLifeSupportDecay}/step (reduced from {Scenario.LifeSupportDecay})"
                 : $"{Scenario.LifeSupportDecay}/step";
-            
+
             var lifeSupportTaskInfo = "";
             if (Scenario.HasCompletedLifeSupportTasks())
             {
@@ -60,16 +60,16 @@ public class Simulation
                 var completionRate = Scenario.LifeSupportTaskCompletionRate() * 100;
                 lifeSupportTaskInfo = $" [Maintenance: {completedCount}/{totalMaintenance} ({completionRate:F0}%)]";
             }
-            
+
             Console.WriteLine($"Life Support: {Scenario.LifeSupport} (Decay: {decayDisplay}){lifeSupportTaskInfo}");
-            
+            Console.WriteLine($"Colony Stats: {Scenario.ColonyStats.GetStatusSummary()}");
+
             // Check if mission has failed after the update
             if (Scenario.HasFailed)
             {
                 Console.WriteLine("💀 Mission failed! Life support has been depleted!");
                 break;
             }
-            
             Console.WriteLine();
             steps++;
         }

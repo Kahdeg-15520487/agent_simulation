@@ -62,13 +62,27 @@ public class Agent
         {
             var random = new Random();
             var task = incompleteTasks[random.Next(incompleteTasks.Count)];
-            var progressAmount = random.Next(5, 15);
+            
+            // Base progress amount
+            var baseProgress = random.Next(5, 15);
+            
+            // Apply colony stat bonuses
+            var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(task.Type);
+            var totalProgress = baseProgress + bonusProgress;
+            
             var oldProgress = task.Progress;
-            task.UpdateProgress(progressAmount);
+            task.UpdateProgress(totalProgress);
             
             // Report progress made
             Console.WriteLine($"{Name} worked on {task.Name}: {CurrentThought}");
-            Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{progressAmount})");
+            if (bonusProgress > 0)
+            {
+                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
+            }
+            else
+            {
+                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
+            }
             
             // Report if task was completed
             if (task.IsCompleted && oldProgress < task.RequiredProgress)
