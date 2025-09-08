@@ -263,6 +263,11 @@ public class Scenario
                             {
                                 newTaskDef.CompletionActions.AddRange(task.CompletionActions);
                             }
+                            // If the action specifies completion actions for the new task, add them
+                            else if (action.NewTaskCompleteActions != null && action.NewTaskCompleteActions.Count > 0)
+                            {
+                                newTaskDef.CompletionActions.AddRange(action.NewTaskCompleteActions);
+                            }
                             
                             var newTask = new SimulationTask(newTaskDef);
                             Tasks.Add(newTask);
@@ -280,6 +285,16 @@ public class Scenario
                         var oldDecay = LifeSupportDecay;
                         LifeSupportDecay = Math.Max(0, LifeSupportDecay - action.Value);
                         Console.WriteLine($"   ⬇️ Life support decay reduced: {oldDecay} → {LifeSupportDecay} (-{action.Value})");
+                        break;
+                        
+                    case TaskCompletionAction.ActionType.TriggerEvent:
+                        if (!string.IsNullOrEmpty(action.EventMessage))
+                        {
+                            // Add the event message to the event log
+                            EventLog.Add(action.EventMessage);
+                            DetailedEventLog.Add(new EventLogEntry("Task Completion Event", action.EventMessage, Time));
+                            Console.WriteLine($"   📢 Event triggered: {action.EventMessage}");
+                        }
                         break;
                 }
             }

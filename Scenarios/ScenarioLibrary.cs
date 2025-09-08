@@ -43,11 +43,12 @@ public static class ScenarioLibrary
                     }
                 }
             },
-            
+
             new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 120, TaskType.Engineering)
             {
                 CompletionActions = new List<TaskCompletionAction>
                 {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.TriggerEvent,"Spaceship engine fixed!"),
                     new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
                     {
                         NewTaskName = "Test Engine Systems",
@@ -83,7 +84,7 @@ public static class ScenarioLibrary
                     }
                 }
             },
-            
+
             new TaskDefinition("Scout Planet Surface", "Explore the alien planet to find resources and assess threats.", 70, TaskType.Navigation)
             {
                 CompletionActions = new List<TaskCompletionAction>
@@ -138,7 +139,7 @@ public static class ScenarioLibrary
                     }
                 }
             },
-            
+
             new TaskDefinition("Shelter Maintenance", "Maintain and improve temporary shelter facilities.", 40, TaskType.Survival)
             {
                 CompletionActions = new List<TaskCompletionAction>

@@ -21,7 +21,8 @@ public class TaskCompletionAction
         AddNewTask,
         IncreaseLifeSupport,
         DecreaseLifeSupportDecay,
-        UnlockNewTaskType
+        UnlockNewTaskType,
+        TriggerEvent,
     }
 
     public ActionType Type { get; set; }
@@ -31,11 +32,19 @@ public class TaskCompletionAction
     public int NewTaskRequiredProgress { get; set; } = 100;
     public TaskType NewTaskType { get; set; } = TaskType.Other;
     public bool IsRecurring { get; set; } = false; // For survival tasks that repeat
+    public List<TaskCompletionAction>? NewTaskCompleteActions { get; set; } // Completion actions for the new task
+    public string? EventMessage { get; set; } // Message for triggered events
 
     public TaskCompletionAction(ActionType type, int value = 0)
     {
         Type = type;
         Value = value;
+    }
+
+    public TaskCompletionAction(ActionType type, string eventMessage)
+    {
+        Type = type;
+        EventMessage = eventMessage;
     }
 }
 
