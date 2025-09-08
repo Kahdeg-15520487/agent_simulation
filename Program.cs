@@ -23,7 +23,7 @@ internal class Program
         // var scenarioDefinition = ScenarioLibrary.GetZombieApocalypseScenario();
         // var scenarioDefinition = ScenarioLibrary.GetSpaceStationScenario();
 
-        var sim = new Simulation(scenarioDefinition);
+        var sim = new Simulation(scenarioDefinition,"http://localhost:8080");
         sim.Run();
     }
 }
