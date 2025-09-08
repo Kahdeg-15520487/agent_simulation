@@ -11,6 +11,7 @@ public class Agent
     public string Personality { get; set; } // e.g., "Brave", "Cautious", "Logical"
     public List<string> Memory { get; set; } = new();
     public string CurrentThought { get; set; }
+    public List<string> Logs { get; private set; } = new();
 
     public Agent(string name, string personality)
     {
@@ -56,6 +57,8 @@ public class Agent
 
     public virtual void Act(Scenario scenario)
     {
+        Logs.Clear();
+        
         // Choose a random incomplete task to work on
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (incompleteTasks.Any())
@@ -74,20 +77,20 @@ public class Agent
             task.UpdateProgress(totalProgress);
             
             // Report progress made
-            Console.WriteLine($"{Name} worked on {task.Name}: {CurrentThought}");
+            Logs.Add($"{Name} worked on {task.Name}: {CurrentThought}");
             if (bonusProgress > 0)
             {
-                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
+                Logs.Add($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
             }
             else
             {
-                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
+                Logs.Add($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
             }
             
             // Report if task was completed
             if (task.IsCompleted && oldProgress < task.RequiredProgress)
             {
-                Console.WriteLine($"  ✅ {task.Name} COMPLETED!");
+                Logs.Add($"  ✅ {task.Name} COMPLETED!");
             }
         }
     }

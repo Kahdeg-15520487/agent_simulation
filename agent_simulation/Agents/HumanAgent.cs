@@ -19,44 +19,39 @@ public class HumanAgent : Agent
 
     public override void Act(Scenario scenario)
     {
+        Logs.Clear();
+        
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (!incompleteTasks.Any())
         {
-            Console.WriteLine($"{Name}: All tasks are completed!");
+            Logs.Add($"{Name}: All tasks are completed!");
             return;
         }
 
-        Console.WriteLine($"\n🎯 {Name}'s Turn - Choose a task to work on:");
-        Console.WriteLine($"Current Thought: {CurrentThought}");
-        Console.WriteLine("\nAvailable Tasks:");
+        Logs.Add($"\n🎯 {Name}'s Turn - Choose a task to work on:");
+        Logs.Add($"Current Thought: {CurrentThought}");
+        Logs.Add("\nAvailable Tasks:");
         
         for (int i = 0; i < incompleteTasks.Count; i++)
         {
             var task = incompleteTasks[i];
             var completionPercent = (task.Progress * 100.0 / task.RequiredProgress);
             var statusIcon = GetTaskStatusIcon(task);
-            Console.WriteLine($"{i + 1}. {statusIcon} {task.Name} [{task.Type}]");
-            Console.WriteLine($"   Progress: {task.Progress}/{task.RequiredProgress} ({completionPercent:F1}%)");
-            Console.WriteLine($"   Description: {task.Description}");
+            Logs.Add($"{i + 1}. {statusIcon} {task.Name} [{task.Type}]");
+            Logs.Add($"   Progress: {task.Progress}/{task.RequiredProgress} ({completionPercent:F1}%)");
+            Logs.Add($"   Description: {task.Description}");
         }
 
         // Show colony stats for informed decision making
-        Console.WriteLine($"\n📊 Colony Stats: {scenario.ColonyStats.GetStatusSummary()}");
-        Console.WriteLine($"💚 Life Support: {scenario.LifeSupport} (Efficiency: {scenario.ColonyStats.LifeSupportEfficiency:F1}x)");
+        Logs.Add($"\n📊 Colony Stats: {scenario.ColonyStats.GetStatusSummary()}");
+        Logs.Add($"💚 Life Support: {scenario.LifeSupport} (Efficiency: {scenario.ColonyStats.LifeSupportEfficiency:F1}x)");
 
-        // Get user choice
-        int choice = GetUserChoice(incompleteTasks.Count);
-        if (choice == -1)
-        {
-            Console.WriteLine($"{Name} decides to skip this turn.");
-            return;
-        }
-
-        var selectedTask = incompleteTasks[choice - 1];
-        
-        // Calculate progress with bonuses (using standard progress like other agents)
+        // For UI version, behave like a regular agent for now
         var random = new Random();
-        var baseProgress = random.Next(5, 15); // Same as other agents
+        var selectedTask = incompleteTasks[random.Next(incompleteTasks.Count)];
+        
+        // Calculate progress with bonuses
+        var baseProgress = random.Next(5, 15);
         var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(selectedTask.Type);
         var totalProgress = baseProgress + bonusProgress;
         
@@ -64,21 +59,20 @@ public class HumanAgent : Agent
         selectedTask.UpdateProgress(totalProgress);
         
         // Report progress made
-        Console.WriteLine($"\n✨ {Name} worked on {selectedTask.Name}: {CurrentThought}");
+        Logs.Add($"{Name} worked on {selectedTask.Name}: {CurrentThought}");
         if (bonusProgress > 0)
         {
-            Console.WriteLine($"   Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
-            Console.WriteLine($"   📈 Colony bonuses enhanced your work!");
+            Logs.Add($"  Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
         }
         else
         {
-            Console.WriteLine($"   Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{totalProgress})");
+            Logs.Add($"  Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{totalProgress})");
         }
         
         // Report if task was completed
         if (selectedTask.IsCompleted && oldProgress < selectedTask.RequiredProgress)
         {
-            Console.WriteLine($"   🎉 {selectedTask.Name} COMPLETED!");
+            Logs.Add($"  🎉 {selectedTask.Name} COMPLETED!");
         }
     }
 

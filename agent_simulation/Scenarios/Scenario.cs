@@ -21,6 +21,7 @@ public class Scenario
     public List<ActiveEvent> ActiveEvents { get; set; } = new();
     public List<EventLogEntry> DetailedEventLog { get; set; } = new();
     public List<string> EventLog { get; set; } = new(); // Keep for backward compatibility
+    public List<string> Logs { get; private set; } = new();
     public int HoursPerStep { get; set; }
     public ColonyStats ColonyStats { get; set; } = new(); // Add colony stats
     public ScenarioDefinition Definition { get; private set; } // Store reference to definition
@@ -80,12 +81,12 @@ public class Scenario
             actualDecay = Math.Max(1, (int)(LifeSupportDecay * reductionFactor));
 
             var taskNames = string.Join(", ", lifeSupportTasks.Select(t => t.Name));
-            Console.WriteLine($"Maintenance systems operational ({taskNames})! Decay reduced to {actualDecay}/step");
+            Logs.Add($"Maintenance systems operational ({taskNames})! Decay reduced to {actualDecay}/step");
         }
 
         ActualLifeSupportDecay = actualDecay; // Track the actual decay being applied
         LifeSupport -= actualDecay;
-        if (LifeSupport <= 0) Console.WriteLine("Life support failed!");
+        if (LifeSupport <= 0) Logs.Add("Life support failed!");
 
         // Process task completion actions
         ProcessTaskCompletionActions();
@@ -132,7 +133,7 @@ public class Scenario
         activeEvent.HasTriggered = true;
 
         var eventMsg = $"🚨 EVENT: {activeEvent.Definition.Name} - {activeEvent.Definition.Description}";
-        Console.WriteLine(eventMsg);
+        Logs.Add(eventMsg);
         EventLog.Add(eventMsg);
 
         // Create detailed event log entry
@@ -160,14 +161,14 @@ public class Scenario
                     actualDamage = -ColonyStats.CalculateEventDamageReduction(-effect.Value, eventLogEntry.EventName);
                     if (actualDamage != effect.Value)
                     {
-                        Console.WriteLine($"🛡️ Colony defenses reduced damage from {-effect.Value} to {-actualDamage}!");
+                        Logs.Add($"🛡️ Colony defenses reduced damage from {-effect.Value} to {-actualDamage}!");
                     }
                 }
 
                 LifeSupport += actualDamage;
                 LifeSupport = Math.Max(0, Math.Min(200, LifeSupport)); // Clamp between 0-200
                 var lifeSupportMsg = $"Life support {(actualDamage > 0 ? "increased" : "decreased")} by {Math.Abs(actualDamage)}";
-                Console.WriteLine(lifeSupportMsg);
+                Logs.Add(lifeSupportMsg);
                 eventLogEntry.Effects.Add($"Life Support: {oldLifeSupport} → {LifeSupport} ({(actualDamage > 0 ? "+" : "")}{actualDamage})");
                 break;
 
@@ -186,13 +187,13 @@ public class Scenario
                         actualChange = -mitigatedDamage;
                         if (actualChange != effect.Value)
                         {
-                            Console.WriteLine($"🛡️ Existing defenses reduced task damage from {originalDamage} to {mitigatedDamage}!");
+                            Logs.Add($"🛡️ Existing defenses reduced task damage from {originalDamage} to {mitigatedDamage}!");
                         }
                     }
 
                     task.UpdateProgress(actualChange);
                     var taskMsg = $"Task '{task.Name}' progress {(actualChange > 0 ? "increased" : "decreased")} by {Math.Abs(actualChange)}";
-                    Console.WriteLine(taskMsg);
+                    Logs.Add(taskMsg);
                     eventLogEntry.Effects.Add($"Task '{task.Name}': {oldProgress}/{task.RequiredProgress} → {task.Progress}/{task.RequiredProgress} ({(actualChange > 0 ? "+" : "")}{actualChange})");
                 }
                 break;
@@ -203,7 +204,7 @@ public class Scenario
                     var newTask = new SimulationTask(effect.NewTaskName, effect.NewTaskDescription, effect.Value > 0 ? effect.Value : 100, TaskType.Other);
                     Tasks.Add(newTask);
                     var newTaskMsg = $"New task added: {effect.NewTaskName}";
-                    Console.WriteLine(newTaskMsg);
+                    Logs.Add(newTaskMsg);
                     eventLogEntry.Effects.Add($"New task added: '{effect.NewTaskName}' (Required: {newTask.RequiredProgress})");
                 }
                 break;
@@ -213,7 +214,7 @@ public class Scenario
                 LifeSupportDecay += effect.Value;
                 LifeSupportDecay = Math.Max(0, LifeSupportDecay); // Don't go below 0
                 var decayMsg = $"Life support decay rate changed by {effect.Value}";
-                Console.WriteLine(decayMsg);
+                Logs.Add(decayMsg);
                 eventLogEntry.Effects.Add($"Life Support Decay: {oldDecay}/step → {LifeSupportDecay}/step ({(effect.Value > 0 ? "+" : "")}{effect.Value})");
                 break;
         }
@@ -243,7 +244,7 @@ public class Scenario
         
         foreach (var task in tasksWithCompletionActions)
         {
-            Console.WriteLine($"🎯 Task '{task.Name}' completed - triggering effects...");
+            Logs.Add($"🎯 Task '{task.Name}' completed - triggering effects...");
             
             foreach (var action in task.CompletionActions)
             {
@@ -271,20 +272,20 @@ public class Scenario
                             
                             var newTask = new SimulationTask(newTaskDef);
                             Tasks.Add(newTask);
-                            Console.WriteLine($"   ➕ New task added: '{action.NewTaskName}' ({action.NewTaskType})");
+                            Logs.Add($"   ➕ New task added: '{action.NewTaskName}' ({action.NewTaskType})");
                         }
                         break;
                         
                     case TaskCompletionAction.ActionType.IncreaseLifeSupport:
                         var oldLife = LifeSupport;
                         LifeSupport = Math.Min(200, LifeSupport + action.Value);
-                        Console.WriteLine($"   💚 Life support increased: {oldLife} → {LifeSupport} (+{action.Value})");
+                        Logs.Add($"   💚 Life support increased: {oldLife} → {LifeSupport} (+{action.Value})");
                         break;
                         
                     case TaskCompletionAction.ActionType.DecreaseLifeSupportDecay:
                         var oldDecay = LifeSupportDecay;
                         LifeSupportDecay = Math.Max(0, LifeSupportDecay - action.Value);
-                        Console.WriteLine($"   ⬇️ Life support decay reduced: {oldDecay} → {LifeSupportDecay} (-{action.Value})");
+                        Logs.Add($"   ⬇️ Life support decay reduced: {oldDecay} → {LifeSupportDecay} (-{action.Value})");
                         break;
                         
                     case TaskCompletionAction.ActionType.TriggerEvent:
@@ -293,7 +294,7 @@ public class Scenario
                             // Add the event message to the event log
                             EventLog.Add(action.EventMessage);
                             DetailedEventLog.Add(new EventLogEntry("Task Completion Event", action.EventMessage, Time));
-                            Console.WriteLine($"   📢 Event triggered: {action.EventMessage}");
+                            Logs.Add($"   📢 Event triggered: {action.EventMessage}");
                         }
                         break;
                 }

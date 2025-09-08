@@ -31,7 +31,11 @@ internal class Program
         Console.WriteLine();
         
         var sim = new Simulation(scenarioDefinition, team, "http://localhost:8080");
-        sim.Run();
+        sim.Start();
+        while (sim.ExecuteStep())
+        {
+            // Continue stepping until completion
+        }
     }
     
     private static void ShowGameplayTips()
