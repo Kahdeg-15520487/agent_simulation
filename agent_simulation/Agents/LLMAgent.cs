@@ -33,13 +33,13 @@ public class LLMAgent : Agent
 
         // Convert task index to GUID for safer referencing
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
-        if (llmThought.task_index >= 0 && llmThought.task_index < incompleteTasks.Count)
+        if (string.IsNullOrEmpty(llmThought.task_id))
         {
-            selectedTaskId = incompleteTasks[llmThought.task_index].Id;
+            selectedTaskId = null;
         }
-        else
+        else 
         {
-            selectedTaskId = null; // Random selection
+            selectedTaskId = Guid.Parse(llmThought.task_id);
         }
 
         Memory.Add(CurrentThought);
@@ -79,7 +79,9 @@ public class LLMAgent : Agent
     {
         var memoryText = Memory.Count > 0 ? string.Join("\n", Memory.TakeLast(3)) : "No previous thoughts.";
 
-        var tasksText = string.Join("\n", scenario.Tasks.Select((t, i) => $"{i}. {t.Name}: {t.Description} (Progress: {t.Progress}%)"));
+        var tasksText = string.Join("\n", scenario.Tasks
+            .OrderByDescending(t => t.IsImportant)
+            .Select(t => $"{t.Id} | {t.Name} | {(t.IsImportant ? " [IMPORTANT]" : "")} {t.Description} | {t.Progress}/{t.RequiredProgress}({t.Progress*100/t.RequiredProgress}%)"));
 
         var prompt = $@"
 You are an agent named {Name} with a {Personality} personality in a simulation.
@@ -88,7 +90,7 @@ Scenario: {scenario.Name}
 Life Support: {scenario.LifeSupport}%
 
 Available Tasks:
-task index | task name | task description | progress
+task index | task name | task description | progress 
 {tasksText}
 
 Your recent thoughts:
@@ -98,7 +100,7 @@ As a {Personality} agent, what is your current thought about the situation and w
 Respond just this json with the below schema, do not use any format or backtick:
 {{
     ""thought"": ""Your thought here"",
-    ""task_index"": task_index_number
+    ""task_id"": ""task's guid"" taken from the list above, or """" for skipping
 }}
 ";
 
@@ -113,6 +115,6 @@ Respond just this json with the below schema, do not use any format or backtick:
     class LLMThought
     {
         public string thought { get; set; } = "I need to think...";
-        public int task_index { get; set; } = -1;
+        public string task_id { get; set; } = string.Empty;
     }
 }

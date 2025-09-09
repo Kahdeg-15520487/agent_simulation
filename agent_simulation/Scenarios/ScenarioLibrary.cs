@@ -27,6 +27,7 @@ public static class ScenarioLibrary
             {
                 CompletionActions = new List<TaskCompletionAction>
                 {
+                    new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, 10),
                     new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
                     {
                         NewTaskName = "Repair Hull Breach",
@@ -111,7 +112,7 @@ public static class ScenarioLibrary
             },
             
             // Life Support and Maintenance
-            new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance, true)
+            new TaskDefinition("Fix Life Support system", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance, true)
             {
                 CompletionActions = new List<TaskCompletionAction>
                 {
@@ -227,8 +228,8 @@ public static class ScenarioLibrary
         };
         alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -10));
         alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -25) { TaskName = "Scout Planet Surface" });
-        alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 60) 
-            { NewTaskName = "Treat Injuries", NewTaskDescription = "Provide medical care for crew injured in the alien attack." });
+        alienEncounter.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 60)
+        { NewTaskName = "Treat Injuries", NewTaskDescription = "Provide medical care for crew injured in the alien attack." });
         definition.EventDefinitions.Add(alienEncounter);
 
         var ediblePlantsFound = new EventDefinition("Edible Flora Discovery", "You identify safe, nutritious alien plants!", EventType.Positive)
@@ -297,11 +298,11 @@ public static class ScenarioLibrary
             new TaskDefinition("Prepare Daily Meals", "Cook and distribute food to maintain team nutrition and morale.", 60, TaskType.Survival)
                 .GivesLifeSupportOnCompletion(8)
                 .AddsTaskOnCompletion("Prepare Daily Meals", "Cook and distribute food to maintain team nutrition and morale.", 60, TaskType.Survival, true),
-                
+
             new TaskDefinition("Maintain Water Supplies", "Purify water, check storage tanks, and ration distribution.", 50, TaskType.Survival)
                 .GivesLifeSupportOnCompletion(6)
                 .AddsTaskOnCompletion("Maintain Water Supplies", "Purify water, check storage tanks, and ration distribution.", 50, TaskType.Survival, true),
-                
+
             new TaskDefinition("Check Shelter Integrity", "Inspect walls, doors, and windows for damage or weaknesses.", 40, TaskType.Survival)
                 .GivesLifeSupportOnCompletion(4)
                 .AddsTaskOnCompletion("Check Shelter Integrity", "Inspect walls, doors, and windows for damage or weaknesses.", 40, TaskType.Survival, true),
@@ -355,8 +356,8 @@ public static class ScenarioLibrary
             TriggerHour = 20, // Happens at hour 20
             IsOneTime = true
         };
-        survivorGroup.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 80) 
-            { NewTaskName = "Train New Survivors", NewTaskDescription = "Train the new arrivals in combat, survival, and security protocols." });
+        survivorGroup.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 80)
+        { NewTaskName = "Train New Survivors", NewTaskDescription = "Train the new arrivals in combat, survival, and security protocols." });
         survivorGroup.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, 20));
         survivorGroup.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 30) { TaskName = "Establish Communication" });
         definition.EventDefinitions.Add(survivorGroup);
@@ -399,8 +400,8 @@ public static class ScenarioLibrary
             IsOneTime = true
         };
         scientistSurvivor.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 60) { TaskName = "Find Cure" });
-        scientistSurvivor.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 90) 
-            { NewTaskName = "Mass Produce Antidote", NewTaskDescription = "Set up production facility to create cure for other survivor groups." });
+        scientistSurvivor.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 90)
+        { NewTaskName = "Mass Produce Antidote", NewTaskDescription = "Set up production facility to create cure for other survivor groups." });
         definition.EventDefinitions.Add(scientistSurvivor);
 
         var powerRestoration = new EventDefinition("Generator Repair", "You manage to restore partial power to the facility.", EventType.Positive)
@@ -423,8 +424,8 @@ public static class ScenarioLibrary
         mutantZombie.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -30));
         mutantZombie.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -40) { TaskName = "Fortify Shelter" });
         mutantZombie.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 30) { TaskName = "Treat Infected Wounds" });
-        mutantZombie.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 120) 
-            { NewTaskName = "Study Mutation Samples", NewTaskDescription = "Analyze the mutant zombie to understand virus evolution." });
+        mutantZombie.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 120)
+        { NewTaskName = "Study Mutation Samples", NewTaskDescription = "Analyze the mutant zombie to understand virus evolution." });
         definition.EventDefinitions.Add(mutantZombie);
 
         return definition;
@@ -495,8 +496,8 @@ public static class ScenarioLibrary
             TriggerHour = 15, // Happens at hour 15
             IsOneTime = true
         };
-        asteroidField.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 80) 
-            { NewTaskName = "Emergency Navigation Override", NewTaskDescription = "Manually override navigation to avoid collision course." });
+        asteroidField.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 80)
+        { NewTaskName = "Emergency Navigation Override", NewTaskDescription = "Manually override navigation to avoid collision course." });
         asteroidField.Effects.Add(new EventEffect(EventEffect.EffectType.ChangeLifeSupportDecay, 3));
         definition.EventDefinitions.Add(asteroidField);
 
@@ -536,8 +537,8 @@ public static class ScenarioLibrary
             TriggerHour = 24, // Happens at hour 24
             IsOneTime = true
         };
-        rescueSignal.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 60) 
-            { NewTaskName = "Coordinate Rescue", NewTaskDescription = "Work with the rescue ship to establish safe docking procedures." });
+        rescueSignal.Effects.Add(new EventEffect(EventEffect.EffectType.AddNewTask, 60)
+        { NewTaskName = "Coordinate Rescue", NewTaskDescription = "Work with the rescue ship to establish safe docking procedures." });
         rescueSignal.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, 25));
         definition.EventDefinitions.Add(rescueSignal);
 
