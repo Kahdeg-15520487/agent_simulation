@@ -22,7 +22,7 @@ public class HumanAgent : Agent
         return CurrentThought;
     }
 
-    public override string Act(Scenario scenario)
+    public override string Act(Scenario scenario, int _)
     {
         var logs = new StringBuilder();
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
@@ -58,36 +58,7 @@ public class HumanAgent : Agent
             return logs.ToString();
         }
 
-        var selectedTask = incompleteTasks[choice - 1];
-
-        // Calculate progress with bonuses (using standard progress like other agents)
-        var random = new Random();
-        var baseProgress = random.Next(5, 15); // Same as other agents
-        var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(selectedTask.Type);
-        var totalProgress = baseProgress + bonusProgress;
-
-        var oldProgress = selectedTask.Progress;
-        selectedTask.UpdateProgress(totalProgress);
-
-        // Report progress made
-        logs.AppendLine($"\n✨ {Name} worked on {selectedTask.Name}: {CurrentThought}");
-        if (bonusProgress > 0)
-        {
-            logs.AppendLine($"   Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
-            logs.AppendLine($"   📈 Colony bonuses enhanced your work!");
-        }
-        else
-        {
-            logs.AppendLine($"   Progress: {oldProgress} → {selectedTask.Progress}/{selectedTask.RequiredProgress} (+{totalProgress})");
-        }
-
-        // Report if task was completed
-        if (selectedTask.IsCompleted && oldProgress < selectedTask.RequiredProgress)
-        {
-            logs.AppendLine($"   🎉 {selectedTask.Name} COMPLETED!");
-        }
-
-        return logs.ToString();
+        return base.Act(scenario, choice - 1);
     }
 
     private string GetTaskStatusIcon(Tasks.SimulationTask task)

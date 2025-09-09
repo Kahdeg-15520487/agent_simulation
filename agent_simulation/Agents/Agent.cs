@@ -56,7 +56,7 @@ public class Agent
         return thoughts[random.Next(thoughts.Count)];
     }
 
-    public virtual string Act(Scenario scenario)
+    public virtual string Act(Scenario scenario, int taskIndex = -1)
     {
         // Choose a random incomplete task to work on
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
@@ -64,7 +64,7 @@ public class Agent
         if (incompleteTasks.Any())
         {
             var random = new Random();
-            var task = incompleteTasks[random.Next(incompleteTasks.Count)];
+            var task = taskIndex == -1 ? incompleteTasks[random.Next(incompleteTasks.Count)] : incompleteTasks[taskIndex];
 
             // Base progress amount
             var baseProgress = random.Next(5, 15);
@@ -77,7 +77,7 @@ public class Agent
             task.UpdateProgress(totalProgress);
 
             // Report progress made
-            logs.AppendLine($"{Name} worked on {task.Name}: {CurrentThought}");
+            logs.AppendLine($"{Name} worked on {task.Name}:");
             if (bonusProgress > 0)
             {
                 logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");

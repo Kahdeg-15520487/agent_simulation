@@ -14,6 +14,7 @@ public class LLMAgent : Agent
     private readonly HttpClient _httpClient;
     private readonly string _model;
     private readonly string _endpoint;
+    private int taskIndex = -1;
 
     public LLMAgent(string name, string personality, string model = "llama2", string endpoint = "http://localhost:5000")
         : base(name, personality)
@@ -26,7 +27,9 @@ public class LLMAgent : Agent
     public override string Think(Scenario scenario)
     {
         // Generate thought using LLM
-        CurrentThought = GenerateThoughtWithLLM(scenario).Result; // Synchronous for simplicity
+        var llmThought = JsonSerializer.Deserialize<LLMThought>(GenerateThoughtWithLLM(scenario).Result); // Synchronous for simplicity
+        CurrentThought = llmThought.thought;
+        taskIndex = llmThought.task_index;
         Memory.Add(CurrentThought);
         return CurrentThought;
     }
@@ -64,7 +67,7 @@ public class LLMAgent : Agent
     {
         var memoryText = Memory.Count > 0 ? string.Join("\n", Memory.TakeLast(3)) : "No previous thoughts.";
 
-        var tasksText = string.Join("\n", scenario.Tasks.Select(t => $"{t.Name}: {t.Description} (Progress: {t.Progress}%)"));
+        var tasksText = string.Join("\n", scenario.Tasks.Select((t, i) => $"{i}. {t.Name}: {t.Description} (Progress: {t.Progress}%)"));
 
         var prompt = $@"
 You are an agent named {Name} with a {Personality} personality in a simulation.
@@ -73,14 +76,31 @@ Scenario: {scenario.Name}
 Life Support: {scenario.LifeSupport}%
 
 Available Tasks:
+task index | task name | task description | progress
 {tasksText}
 
 Your recent thoughts:
 {memoryText}
 
-As a {Personality} agent, what is your current thought about the situation? Keep it concise, one sentence.
+As a {Personality} agent, what is your current thought about the situation and which task should you do now? Keep it concise, one sentence.
+Respond in this format:
+{{
+    ""thought"": ""Your thought here"",
+    ""task_index"": task_index_number
+}}
 ";
 
         return prompt.Trim();
+    }
+
+    public override string Act(Scenario scenario, int _)
+    {
+        return base.Act(scenario, taskIndex);
+    }
+
+    class LLMThought
+    {
+        public string thought { get; set; } = "I need to think...";
+        public int task_index { get; set; } = -1;
     }
 }
