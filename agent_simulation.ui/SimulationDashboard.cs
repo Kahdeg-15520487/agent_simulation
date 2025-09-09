@@ -109,8 +109,8 @@ namespace AgentSimulation.UI
             // User input panel (initially hidden)
             pnlUserInput = new Panel
             {
-                Location = new Point(10, 360),
-                Size = new Size(500, 250),
+                Location = new Point(10, 400),
+                Size = new Size(500, 200),
                 BorderStyle = BorderStyle.FixedSingle,
                 Visible = false,
                 BackColor = Color.LightYellow
