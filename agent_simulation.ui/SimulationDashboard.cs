@@ -29,6 +29,7 @@ namespace AgentSimulation.UI
         private ListBox listBoxUserOptions;
         private Button btnSubmitUserInput;
         private CheckBox chkAutoStep;
+        private ListView listViewEffects;
 
         public SimulationDashboard()
         {
@@ -68,7 +69,7 @@ namespace AgentSimulation.UI
             listViewTasks = new ListView
             {
                 Location = new Point(10, 110),
-                Size = new Size(500, 200),
+                Size = new Size(500, 150),
                 View = View.Details,
                 FullRowSelect = true,
                 GridLines = true
@@ -78,6 +79,20 @@ namespace AgentSimulation.UI
             listViewTasks.Columns.Add("Required", 80);
             listViewTasks.Columns.Add("Status", 80);
             listViewTasks.Columns.Add("Type", 100);
+
+            // Effects list view
+            listViewEffects = new ListView
+            {
+                Location = new Point(10, 270),
+                Size = new Size(500, 100),
+                View = View.Details,
+                FullRowSelect = true,
+                GridLines = true
+            };
+            listViewEffects.Columns.Add("Effect", 200);
+            listViewEffects.Columns.Add("Type", 60);
+            listViewEffects.Columns.Add("Target", 120);
+            listViewEffects.Columns.Add("Duration", 80);
 
             // Log rich text box for colorful output
             richTextBoxLog = new RichTextBox
@@ -133,7 +148,7 @@ namespace AgentSimulation.UI
                 btnStart, btnStop, btnPause, btnStep, chkAutoStep,
                 lblSimulationStatus, lblStepInfo, lblLifeSupportInfo,
                 progressBarSimulation, progressBarLifeSupport,
-                listViewTasks, richTextBoxLog, pnlUserInput
+                listViewTasks, listViewEffects, richTextBoxLog, pnlUserInput
             });
 
             this.ResumeLayout();
@@ -383,6 +398,7 @@ namespace AgentSimulation.UI
             {
                 UpdateTasksList();
                 UpdateLifeSupportDisplay();
+                UpdateEffectsList();
             });
         }
 
@@ -593,10 +609,56 @@ namespace AgentSimulation.UI
             }
         }
 
+        private void UpdateEffectsList()
+        {
+            if (simulation == null) return;
+
+            var effects = simulation.Scenario.GetActiveEffectsSummary();
+            
+            listViewEffects.Items.Clear();
+            foreach (var effectStr in effects)
+            {
+                // Parse the effect display string to extract components
+                var parts = effectStr.Split(' ', 4); // Split on first 4 spaces to get icon, name, target, and rest
+                if (parts.Length >= 4)
+                {
+                    var typeIcon = parts[0]; // ↗️ or ↘️
+                    var effectType = typeIcon == "↗️" ? "Buff" : "Debuff";
+                    var effectName = parts[1];
+                    
+                    // Extract target and duration from the remaining parts
+                    var remaining = string.Join(" ", parts.Skip(2));
+                    var targetMatch = remaining.IndexOf('(');
+                    var durationMatch = remaining.LastIndexOf('-');
+                    
+                    var target = targetMatch > 0 ? remaining.Substring(targetMatch + 1, remaining.IndexOf(')') - targetMatch - 1) : "Unknown";
+                    var duration = durationMatch > 0 ? remaining.Substring(durationMatch + 1).Trim() : "Unknown";
+
+                    var item = new ListViewItem($"{typeIcon} {effectName}");
+                    item.SubItems.Add(effectType);
+                    item.SubItems.Add(target);
+                    item.SubItems.Add(duration);
+                    
+                    // Color code by type
+                    if (effectType == "Buff")
+                    {
+                        item.BackColor = Color.LightGreen;
+                    }
+                    else
+                    {
+                        item.BackColor = Color.LightCoral;
+                    }
+                    
+                    listViewEffects.Items.Add(item);
+                }
+            }
+        }
+
         private void UpdateUI()
         {
             UpdateTasksList();
             UpdateLifeSupportDisplay();
+            UpdateEffectsList();
         }
 
         private void AddLogMessage(string message)

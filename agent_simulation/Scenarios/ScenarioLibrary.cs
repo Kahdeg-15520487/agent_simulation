@@ -24,27 +24,10 @@ public static class ScenarioLibrary
         {
             // Core Engineering Tasks
             new TaskDefinition("Assess Ship Damage", "Survey the crash site and catalog all damage to critical systems.", 40, TaskType.Engineering)
-            {
-                CompletionActions = new List<TaskCompletionAction>
-                {
-                    new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, 10),
-                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
-                    {
-                        NewTaskName = "Repair Hull Breach",
-                        NewTaskDescription = "Seal the main hull breach to prevent atmosphere loss.",
-                        NewTaskRequiredProgress = 80,
-                        NewTaskType = TaskType.Engineering,
-                        NewTaskIsImportant = true
-                    },
-                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
-                    {
-                        NewTaskName = "Salvage Ship Components",
-                        NewTaskDescription = "Recover usable parts from damaged ship sections.",
-                        NewTaskRequiredProgress = 60,
-                        NewTaskType = TaskType.Resource
-                    }
-                }
-            },
+                .GivesLifeSupportOnCompletion(10)
+                .AddsBuffToTaskType("Engineering Expertise", "Detailed assessment provides insight into ship systems", TaskType.Engineering, 1.3, 10)
+                .AddsTaskOnCompletion("Repair Hull Breach", "Seal the main hull breach to prevent atmosphere loss.", 80, TaskType.Engineering, false)
+                .AddsTaskOnCompletion("Salvage Ship Components", "Recover usable parts from damaged ship sections.", 60, TaskType.Resource),
 
             new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 120, TaskType.Engineering, true)
             {
@@ -113,19 +96,8 @@ public static class ScenarioLibrary
             
             // Life Support and Maintenance
             new TaskDefinition("Fix Life Support system", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance, true)
-            {
-                CompletionActions = new List<TaskCompletionAction>
-                {
-                    new TaskCompletionAction(TaskCompletionAction.ActionType.DecreaseLifeSupportDecay, 2),
-                    new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
-                    {
-                        NewTaskName = "Upgrade Life Support",
-                        NewTaskDescription = "Improve life support systems with alien technology.",
-                        NewTaskRequiredProgress = 100,
-                        NewTaskType = TaskType.Engineering
-                    }
-                }
-            },
+                .AddsLifeSupportDecayReduction("Efficient Life Support", "Optimized systems reduce power consumption", 0.8, 15)
+                .AddsTaskOnCompletion("Upgrade Life Support", "Improve life support systems with alien technology.", 100, TaskType.Engineering),
             
             // Survival Tasks (Recurring)
             new TaskDefinition("Emergency Food Rationing", "Manage and distribute emergency food supplies.", 30, TaskType.Survival)
@@ -207,6 +179,16 @@ public static class ScenarioLibrary
         };
         resourceDiscovery.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 25) { TaskName = "Gather Resources" });
         resourceDiscovery.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, 20) { TaskName = "Salvage Ship Components" });
+        resourceDiscovery.Effects.Add(new EventEffect(EventEffect.EffectType.AddScenarioEffect)
+        {
+            EffectName = "Abundant Resources",
+            EffectDescription = "Rich mineral deposits make resource gathering more efficient",
+            EffectTypeStr = "Buff",
+            EffectTarget = "TaskType",
+            EffectTargetTaskType = TaskType.Resource,
+            EffectMultiplier = 1.5, // 50% bonus to resource tasks
+            EffectDuration = 6 // Lasts 6 steps
+        });
         definition.EventDefinitions.Add(resourceDiscovery);
 
         var equipmentFailure = new EventDefinition("System Malfunction", "Critical ship systems experience cascading failures.", EventType.Negative)
@@ -215,6 +197,16 @@ public static class ScenarioLibrary
             TriggerHour = 10, // Happens at hour 10
             IsOneTime = true
         };
+        equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.AddScenarioEffect)
+        {
+            EffectName = "System Instability",
+            EffectDescription = "Malfunctioning systems make engineering work more difficult",
+            EffectTypeStr = "Debuff",
+            EffectTarget = "TaskType",
+            EffectTargetTaskType = TaskType.Engineering,
+            EffectMultiplier = 0.7, // 30% reduction in engineering progress
+            EffectDuration = 8 // Lasts 8 steps
+        });
         equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -30) { TaskName = "Fix Engine" });
         equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyLifeSupport, -15));
         equipmentFailure.Effects.Add(new EventEffect(EventEffect.EffectType.ModifyTaskProgress, -20) { TaskName = "Maintain Life Support" });

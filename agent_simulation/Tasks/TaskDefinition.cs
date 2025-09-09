@@ -23,6 +23,7 @@ public class TaskCompletionAction
         DecreaseLifeSupportDecay,
         UnlockNewTaskType,
         TriggerEvent,
+        AddEffect,       // Add a buff or debuff to the scenario
     }
 
     public ActionType Type { get; set; }
@@ -35,6 +36,17 @@ public class TaskCompletionAction
     public bool IsRecurring { get; set; } = false; // For survival tasks that repeat
     public List<TaskCompletionAction>? NewTaskCompleteActions { get; set; } // Completion actions for the new task
     public string? EventMessage { get; set; } // Message for triggered events
+    
+    // Effect-related properties
+    public string? EffectName { get; set; }
+    public string? EffectDescription { get; set; }
+    public string? EffectType { get; set; } // "Buff" or "Debuff"
+    public string? EffectTarget { get; set; } // "TaskType", "SpecificTask", "AllTasks", "LifeSupport", "LifeSupportDecay"
+    public TaskType? EffectTargetTaskType { get; set; }
+    public string? EffectTargetTaskName { get; set; }
+    public double EffectMultiplier { get; set; } = 1.0;
+    public int EffectFlatValue { get; set; } = 0;
+    public int EffectDuration { get; set; } = -1; // -1 for permanent
 
     public TaskCompletionAction(ActionType type, int value = 0)
     {
@@ -100,5 +112,49 @@ public class TaskDefinition
     {
         IsImportant = true;
         return this;
+    }
+
+    // Helper method to add buff/debuff on completion
+    public TaskDefinition AddsEffectOnCompletion(string effectName, string effectDescription, string effectType, string effectTarget, double multiplier = 1.0, int flatValue = 0, int duration = -1, TaskType? targetTaskType = null, string? targetTaskName = null)
+    {
+        CompletionActions.Add(new TaskCompletionAction(TaskCompletionAction.ActionType.AddEffect)
+        {
+            EffectName = effectName,
+            EffectDescription = effectDescription,
+            EffectType = effectType,
+            EffectTarget = effectTarget,
+            EffectMultiplier = multiplier,
+            EffectFlatValue = flatValue,
+            EffectDuration = duration,
+            EffectTargetTaskType = targetTaskType,
+            EffectTargetTaskName = targetTaskName
+        });
+        return this;
+    }
+
+    // Specific helper methods for common effect types
+    public TaskDefinition AddsBuffToTaskType(string effectName, string effectDescription, TaskType taskType, double multiplier, int duration = -1)
+    {
+        return AddsEffectOnCompletion(effectName, effectDescription, "Buff", "TaskType", multiplier, 0, duration, taskType);
+    }
+
+    public TaskDefinition AddsDebuffToTaskType(string effectName, string effectDescription, TaskType taskType, double multiplier, int duration = -1)
+    {
+        return AddsEffectOnCompletion(effectName, effectDescription, "Debuff", "TaskType", multiplier, 0, duration, taskType);
+    }
+
+    public TaskDefinition AddsBuffToSpecificTask(string effectName, string effectDescription, string taskName, double multiplier, int duration = -1)
+    {
+        return AddsEffectOnCompletion(effectName, effectDescription, "Buff", "SpecificTask", multiplier, 0, duration, null, taskName);
+    }
+
+    public TaskDefinition AddsLifeSupportBuff(string effectName, string effectDescription, int flatValue, int duration = -1)
+    {
+        return AddsEffectOnCompletion(effectName, effectDescription, "Buff", "LifeSupport", 1.0, flatValue, duration);
+    }
+
+    public TaskDefinition AddsLifeSupportDecayReduction(string effectName, string effectDescription, double multiplier, int duration = -1)
+    {
+        return AddsEffectOnCompletion(effectName, effectDescription, "Buff", "LifeSupportDecay", multiplier, 0, duration);
     }
 }

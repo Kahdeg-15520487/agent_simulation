@@ -25,6 +25,7 @@ public class Scenario
     public int HoursPerStep { get; set; }
     public ColonyStats ColonyStats { get; set; } = new(); // Add colony stats
     public ScenarioDefinition Definition { get; private set; } // Store reference to definition
+    public EffectManager EffectManager { get; set; } = new(); // Buff/debuff system
     private Random random;
 
     public Scenario(ScenarioDefinition definition,TextWriter logsWriter, int seed = -1)
@@ -75,25 +76,49 @@ public class Scenario
 
     public void Update()
     {
-        // Update colony stats first
+        // Update effects first (and remove expired ones)
+        var expiredEffects = EffectManager.UpdateEffects();
+        foreach (var expired in expiredEffects)
+        {
+            LogsWriter.WriteLine($"🔄 Effect expired: {expired.Name}");
+        }
+
+        // Update colony stats
         ColonyStats.UpdateStats(Tasks, LifeSupport);
 
         // Advance time
         Time.AdvanceHours(HoursPerStep);
 
-        // Process life support decay
+        // Apply life support bonuses from effects
+        var lifeSupportBonus = EffectManager.GetLifeSupportBonus();
+        if (lifeSupportBonus != 0)
+        {
+            LifeSupport += lifeSupportBonus;
+            LogsWriter.WriteLine($"Life support adjusted by effects: {lifeSupportBonus:+0;-0}");
+        }
+
+        // Process life support decay with effect modifiers
         var lifeSupportTasks = Tasks.Where(t => t.Type == TaskType.Maintenance && t.IsCompleted).ToList();
-        var actualDecay = LifeSupportDecay;
+        var baseDecay = LifeSupportDecay;
 
         // If any maintenance tasks are completed, reduce decay
         if (lifeSupportTasks.Any())
         {
             // Each completed maintenance task reduces decay
             var reductionFactor = Math.Max(0.1, 1.0 / (lifeSupportTasks.Count + 2)); // More tasks = better reduction
-            actualDecay = Math.Max(1, (int)(LifeSupportDecay * reductionFactor));
+            baseDecay = Math.Max(1, (int)(LifeSupportDecay * reductionFactor));
 
             var taskNames = string.Join(", ", lifeSupportTasks.Select(t => t.Name));
-            LogsWriter.WriteLine($"Maintenance systems operational ({taskNames})! Decay reduced to {actualDecay}/step");
+            LogsWriter.WriteLine($"Maintenance systems operational ({taskNames})! Decay reduced to {baseDecay}/step");
+        }
+
+        // Apply effect multipliers to decay
+        var decayMultiplier = EffectManager.GetLifeSupportDecayMultiplier();
+        var actualDecay = Math.Max(1, (int)(baseDecay * decayMultiplier));
+
+        if (decayMultiplier != 1.0)
+        {
+            LogsWriter.WriteLine($"Life support decay modified by effects: ×{decayMultiplier:F1} (Final: {actualDecay}/step)");
         }
 
         ActualLifeSupportDecay = actualDecay; // Track the actual decay being applied
@@ -153,13 +178,13 @@ public class Scenario
 
         foreach (var effect in activeEvent.Definition.Effects)
         {
-            ApplyEventEffect(effect, eventLogEntry);
+            ApplyEventEffect(effect, eventLogEntry, activeEvent);
         }
 
         DetailedEventLog.Add(eventLogEntry);
     }
 
-    private void ApplyEventEffect(EventEffect effect, EventLogEntry eventLogEntry)
+    private void ApplyEventEffect(EventEffect effect, EventLogEntry eventLogEntry, ActiveEvent activeEvent)
     {
         switch (effect.Type)
         {
@@ -234,6 +259,54 @@ public class Scenario
                 var decayMsg = $"Life support decay rate changed by {effect.Value}";
                 LogsWriter.WriteLine(decayMsg);
                 eventLogEntry.Effects.Add($"Life Support Decay: {oldDecay}/step → {LifeSupportDecay}/step ({(effect.Value > 0 ? "+" : "")}{effect.Value})");
+                break;
+                
+            case EventEffect.EffectType.AddScenarioEffect:
+                if (!string.IsNullOrEmpty(effect.EffectName) && !string.IsNullOrEmpty(effect.EffectTypeStr) && !string.IsNullOrEmpty(effect.EffectTarget))
+                {
+                    var effectType = effect.EffectTypeStr.Equals("Buff", StringComparison.OrdinalIgnoreCase) 
+                        ? EffectType.Buff 
+                        : EffectType.Debuff;
+                    
+                    var effectTarget = effect.EffectTarget switch
+                    {
+                        "TaskType" => EffectTarget.TaskType,
+                        "SpecificTask" => EffectTarget.SpecificTask,
+                        "AllTasks" => EffectTarget.AllTasks,
+                        "LifeSupport" => EffectTarget.LifeSupport,
+                        "LifeSupportDecay" => EffectTarget.LifeSupportDecay,
+                        _ => EffectTarget.AllTasks
+                    };
+                    
+                    var scenarioEffect = new ScenarioEffect(
+                        effect.EffectName,
+                        effect.EffectDescription ?? "Event effect",
+                        effectType,
+                        effectTarget,
+                        effect.EffectMultiplier,
+                        effect.EffectFlatValue,
+                        effect.EffectDuration,
+                        $"Event: {activeEvent.Definition.Name}"
+                    );
+                    
+                    // Set target-specific properties
+                    if (effectTarget == EffectTarget.TaskType && effect.EffectTargetTaskType.HasValue)
+                    {
+                        scenarioEffect.TargetTaskType = effect.EffectTargetTaskType.Value;
+                    }
+                    else if (effectTarget == EffectTarget.SpecificTask && !string.IsNullOrEmpty(effect.EffectTargetTaskName))
+                    {
+                        scenarioEffect.TargetTaskName = effect.EffectTargetTaskName;
+                    }
+                    
+                    EffectManager.AddEffect(scenarioEffect);
+                    
+                    var typeIcon = effectType == EffectType.Buff ? "↗️" : "↘️";
+                    var durationText = effect.EffectDuration == -1 ? "permanent" : $"{effect.EffectDuration} steps";
+                    var effectMsg = $"Scenario effect applied: {effect.EffectName} ({durationText})";
+                    LogsWriter.WriteLine($"{typeIcon} {effectMsg}");
+                    eventLogEntry.Effects.Add(effectMsg);
+                }
                 break;
         }
     }
@@ -321,6 +394,52 @@ public class Scenario
                             LogsWriter.WriteLine($"   📢 Event triggered: {action.EventMessage}");
                         }
                         break;
+                        
+                    case TaskCompletionAction.ActionType.AddEffect:
+                        if (!string.IsNullOrEmpty(action.EffectName) && !string.IsNullOrEmpty(action.EffectType) && !string.IsNullOrEmpty(action.EffectTarget))
+                        {
+                            var effectType = action.EffectType.Equals("Buff", StringComparison.OrdinalIgnoreCase) 
+                                ? EffectType.Buff 
+                                : EffectType.Debuff;
+                            
+                            var effectTarget = action.EffectTarget switch
+                            {
+                                "TaskType" => EffectTarget.TaskType,
+                                "SpecificTask" => EffectTarget.SpecificTask,
+                                "AllTasks" => EffectTarget.AllTasks,
+                                "LifeSupport" => EffectTarget.LifeSupport,
+                                "LifeSupportDecay" => EffectTarget.LifeSupportDecay,
+                                _ => EffectTarget.AllTasks
+                            };
+                            
+                            var effect = new ScenarioEffect(
+                                action.EffectName,
+                                action.EffectDescription ?? "Task completion effect",
+                                effectType,
+                                effectTarget,
+                                action.EffectMultiplier,
+                                action.EffectFlatValue,
+                                action.EffectDuration,
+                                $"Task: {task.Name}"
+                            );
+                            
+                            // Set target-specific properties
+                            if (effectTarget == EffectTarget.TaskType && action.EffectTargetTaskType.HasValue)
+                            {
+                                effect.TargetTaskType = action.EffectTargetTaskType.Value;
+                            }
+                            else if (effectTarget == EffectTarget.SpecificTask && !string.IsNullOrEmpty(action.EffectTargetTaskName))
+                            {
+                                effect.TargetTaskName = action.EffectTargetTaskName;
+                            }
+                            
+                            EffectManager.AddEffect(effect);
+                            
+                            var typeIcon = effectType == EffectType.Buff ? "↗️" : "↘️";
+                            var durationText = action.EffectDuration == -1 ? "permanent" : $"{action.EffectDuration} steps";
+                            LogsWriter.WriteLine($"   {typeIcon} Effect applied: {action.EffectName} ({durationText})");
+                        }
+                        break;
                 }
             }
             
@@ -354,5 +473,35 @@ public class Scenario
         
         Tasks.Add(newTask);
         return true;
+    }
+
+    /// <summary>
+    /// Get a summary of active effects for display
+    /// </summary>
+    public List<string> GetActiveEffectsSummary()
+    {
+        return EffectManager.GetEffectDisplayStrings();
+    }
+
+    /// <summary>
+    /// Add a scenario effect directly (useful for testing or manual events)
+    /// </summary>
+    public void AddEffect(ScenarioEffect effect)
+    {
+        EffectManager.AddEffect(effect);
+        LogsWriter.WriteLine($"Effect added: {effect.GetDisplayString()}");
+    }
+
+    /// <summary>
+    /// Remove a scenario effect by ID
+    /// </summary>
+    public bool RemoveEffect(Guid effectId)
+    {
+        if (EffectManager.RemoveEffect(effectId))
+        {
+            LogsWriter.WriteLine("Effect removed successfully");
+            return true;
+        }
+        return false;
     }
 }

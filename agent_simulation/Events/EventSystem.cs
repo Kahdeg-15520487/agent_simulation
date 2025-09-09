@@ -45,7 +45,8 @@ public class EventEffect
         ModifyTaskProgress,
         AddNewTask,
         RemoveTask,
-        ChangeLifeSupportDecay
+        ChangeLifeSupportDecay,
+        AddScenarioEffect    // Add buff/debuff effects
     }
 
     public EffectType Type { get; set; }
@@ -53,6 +54,17 @@ public class EventEffect
     public string? TaskName { get; set; } // For task-related effects
     public string? NewTaskName { get; set; } // For adding new tasks
     public string? NewTaskDescription { get; set; }
+    
+    // Properties for scenario effects (buffs/debuffs)
+    public string? EffectName { get; set; }
+    public string? EffectDescription { get; set; }
+    public string? EffectTypeStr { get; set; } // "Buff" or "Debuff"
+    public string? EffectTarget { get; set; } // "TaskType", "SpecificTask", etc.
+    public AgentSimulation.Tasks.TaskType? EffectTargetTaskType { get; set; }
+    public string? EffectTargetTaskName { get; set; }
+    public double EffectMultiplier { get; set; } = 1.0;
+    public int EffectFlatValue { get; set; } = 0;
+    public int EffectDuration { get; set; } = -1;
 
     public EventEffect(EffectType type, int value = 0)
     {

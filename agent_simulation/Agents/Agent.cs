@@ -97,21 +97,29 @@ public class Agent
 
         // Apply colony stat bonuses
         var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(task.Type);
-        var totalProgress = baseProgress + bonusProgress;
+        
+        // Apply effect multipliers and bonuses
+        var effectMultiplier = scenario.EffectManager.GetTaskProgressMultiplier(task);
+        var effectBonus = scenario.EffectManager.GetTaskProgressBonus(task);
+        
+        // Calculate final progress
+        var totalBaseProgress = baseProgress + bonusProgress + effectBonus;
+        var finalProgress = (int)Math.Round(totalBaseProgress * effectMultiplier);
 
         var oldProgress = task.Progress;
-        task.UpdateProgress(totalProgress);
+        task.UpdateProgress(finalProgress);
 
         // Report progress made
         logs.AppendLine($"{Name} worked on {task.Name}:");
-        if (bonusProgress > 0)
-        {
-            logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
-        }
-        else
-        {
-            logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
-        }
+        
+        // Build detailed progress report
+        var progressDetails = new List<string> { $"+{baseProgress} base" };
+        if (bonusProgress > 0) progressDetails.Add($"+{bonusProgress} colony bonus");
+        if (effectBonus != 0) progressDetails.Add($"{effectBonus:+0;-0} effect bonus");
+        if (Math.Abs(effectMultiplier - 1.0) > 0.01) progressDetails.Add($"×{effectMultiplier:F1} effect multiplier");
+        
+        var detailsText = string.Join(", ", progressDetails);
+        logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{finalProgress}: {detailsText})");
 
         // Report if task was completed
         if (task.IsCompleted && oldProgress < task.RequiredProgress)
