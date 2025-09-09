@@ -521,18 +521,18 @@ namespace AgentSimulation.UI
 
         private void OnLogMessageGenerated(object sender, SimulationLogEventArgs e)
         {
-            this.Invoke(() =>
-            {
-                var prefix = e.Level switch
-                {
-                    LogLevel.Error => "❌ ",
-                    LogLevel.Warning => "⚠️ ",
-                    LogLevel.Info => "ℹ️ ",
-                    LogLevel.Debug => "🔍 ",
-                    _ => ""
-                };
-                AddLogMessage($"{prefix}{e.Message}");
-            });
+            // this.Invoke(() =>
+            // {
+            //     var prefix = e.Level switch
+            //     {
+            //         LogLevel.Error => "❌ ",
+            //         LogLevel.Warning => "⚠️ ",
+            //         LogLevel.Info => "ℹ️ ",
+            //         LogLevel.Debug => "🔍 ",
+            //         _ => ""
+            //     };
+            //     AddLogMessage($"{prefix}{e.Message}");
+            // });
         }
 
         private void UpdateTasksList()

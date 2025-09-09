@@ -49,7 +49,7 @@ namespace AgentSimulation.UI
 
             // Form setup
             this.Text = "Simulation Setup";
-            this.Size = new Size(650, 550);
+            this.Size = new Size(650, 575);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;

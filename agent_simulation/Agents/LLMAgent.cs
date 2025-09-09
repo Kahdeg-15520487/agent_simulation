@@ -27,10 +27,10 @@ public class LLMAgent : Agent
     public override string Think(Scenario scenario)
     {
         // Generate thought using LLM
-        var raw = GenerateThoughtWithLLM(scenario).Result;
+        var raw = GenerateThoughtWithLLM(scenario).Result.Replace("`", "").Replace("json", "");
         var llmThought = JsonSerializer.Deserialize<LLMThought>(raw); // Synchronous for simplicity
         CurrentThought = llmThought.thought;
-        
+
         // Convert task index to GUID for safer referencing
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (llmThought.task_index >= 0 && llmThought.task_index < incompleteTasks.Count)
@@ -41,7 +41,7 @@ public class LLMAgent : Agent
         {
             selectedTaskId = null; // Random selection
         }
-        
+
         Memory.Add(CurrentThought);
         return CurrentThought;
     }
@@ -95,7 +95,7 @@ Your recent thoughts:
 {memoryText}
 
 As a {Personality} agent, what is your current thought about the situation and which task should you do now? Keep it concise, one sentence.
-Respond in this format:
+Respond just this json with the below schema, do not use any format or backtick:
 {{
     ""thought"": ""Your thought here"",
     ""task_index"": task_index_number

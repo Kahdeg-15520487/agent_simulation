@@ -22,7 +22,7 @@ public class Simulation : SimulationEventPublisher
 
     public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, TextWriter logWriter, int seed = -1)
     {
-        Scenario = new Scenario(scenarioDefinition, seed);
+        Scenario = new Scenario(scenarioDefinition, logWriter, seed);
         Agents = agents.Select(a => { a.Simulation = this; return a; }).ToList();
         this.logWriter = logWriter;
     }
@@ -40,13 +40,25 @@ public class Simulation : SimulationEventPublisher
         OnLogMessageGenerated(new SimulationLogEventArgs($"=== {Scenario.Name} ==="));
 
         logWriter.WriteLine($"=== {Scenario.Name} ===");
+        OnLogMessageGenerated(new SimulationLogEventArgs(Scenario.Description));
         logWriter.WriteLine(Scenario.Description);
-        if (Scenario.WinCondition != null) logWriter.WriteLine($"Win: {Scenario.WinCondition}");
-        if (Scenario.LoseCondition != null) logWriter.WriteLine($"Lose: {Scenario.LoseCondition}");
+        if (Scenario.WinCondition != null)
+        {
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Win: {Scenario.WinCondition}"));
+            logWriter.WriteLine($"Win: {Scenario.WinCondition}");
+        }
+        if (Scenario.LoseCondition != null)
+        {
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Lose: {Scenario.LoseCondition}"));
+            logWriter.WriteLine($"Lose: {Scenario.LoseCondition}");
+        }
+        OnLogMessageGenerated(new SimulationLogEventArgs(""));
         logWriter.WriteLine();
 
         // Show team composition
+        OnLogMessageGenerated(new SimulationLogEventArgs("👥 TEAM ROSTER"));
         logWriter.WriteLine("👥 TEAM ROSTER");
+        OnLogMessageGenerated(new SimulationLogEventArgs("============="));
         logWriter.WriteLine("=============");
         for (int i = 0; i < Agents.Count; i++)
         {
@@ -57,8 +69,10 @@ public class Simulation : SimulationEventPublisher
                 LLMAgent => "🧠 AI Assistant",
                 _ => "🤖 Basic AI"
             };
+            OnLogMessageGenerated(new SimulationLogEventArgs($"{i + 1}. {agent.Name} - {agentType} ({agent.Personality})"));
             logWriter.WriteLine($"{i + 1}. {agent.Name} - {agentType} ({agent.Personality})");
         }
+        OnLogMessageGenerated(new SimulationLogEventArgs(""));
         logWriter.WriteLine();
     }
 
@@ -77,6 +91,7 @@ public class Simulation : SimulationEventPublisher
         // Check if mission is successful before continuing
         if (Scenario.IsSuccessful)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("🎉 Mission accomplished! All tasks completed!"));
             logWriter.WriteLine("🎉 Mission accomplished! All tasks completed!");
             CompleteSimulation();
             return false;
@@ -85,12 +100,15 @@ public class Simulation : SimulationEventPublisher
         // Agents act in sequence
         foreach (var agent in Agents)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs($"\n{agent.Name}:"));
             logWriter.WriteLine($"\n{agent.Name}:");
 
             string thought = agent.Think(Scenario);
+            OnLogMessageGenerated(new SimulationLogEventArgs(thought));
             logWriter.WriteLine(thought);
 
             string action = agent.Act(Scenario, null); // Use GUID-based version with null for random selection
+            OnLogMessageGenerated(new SimulationLogEventArgs(action));
             logWriter.WriteLine(action);
 
             // Fire agent action event
@@ -99,6 +117,7 @@ public class Simulation : SimulationEventPublisher
             // Add spacing after human player turn for better readability
             if (agent is HumanAgent)
             {
+                OnLogMessageGenerated(new SimulationLogEventArgs(new string('=', 50)));
                 logWriter.WriteLine(new string('=', 50));
             }
         }
@@ -138,13 +157,17 @@ public class Simulation : SimulationEventPublisher
             lifeSupportTaskInfo = $" [Maintenance: {completedCount}/{totalMaintenance} ({completionRate:F0}%)]";
         }
 
+        OnLogMessageGenerated(new SimulationLogEventArgs($"Life Support: {Scenario.LifeSupport} (Decay: {decayDisplay}){lifeSupportTaskInfo}"));
         logWriter.WriteLine($"Life Support: {Scenario.LifeSupport} (Decay: {decayDisplay}){lifeSupportTaskInfo}");
+        OnLogMessageGenerated(new SimulationLogEventArgs($"Colony Stats: {Scenario.ColonyStats.GetStatusSummary()}"));
         logWriter.WriteLine($"Colony Stats: {Scenario.ColonyStats.GetStatusSummary()}");
+        OnLogMessageGenerated(new SimulationLogEventArgs(new string('=', 50)));
         logWriter.WriteLine(new string('=', 50));
 
         // Check if mission has failed after the update
         if (Scenario.HasFailed)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("💀 Mission failed! Life support has been depleted!"));
             logWriter.WriteLine("💀 Mission failed! Life support has been depleted!");
             CompleteSimulation();
             return false;
@@ -153,11 +176,13 @@ public class Simulation : SimulationEventPublisher
         // Check if we've reached max steps
         if (CurrentStep >= MaxSteps)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("❌ Failed to resolve scenario within time limit."));
             logWriter.WriteLine("❌ Failed to resolve scenario within time limit.");
             CompleteSimulation();
             return false;
         }
 
+        OnLogMessageGenerated(new SimulationLogEventArgs(""));
         logWriter.WriteLine();
 
         // Fire step completed event
@@ -178,17 +203,21 @@ public class Simulation : SimulationEventPublisher
 
         OnSimulationCompleted(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, statusMessage));
 
+        OnLogMessageGenerated(new SimulationLogEventArgs("=== SIMULATION END ==="));
         logWriter.WriteLine("=== SIMULATION END ===");
         if (Scenario.IsSuccessful)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("✅ Scenario resolved successfully!"));
             logWriter.WriteLine("✅ Scenario resolved successfully!");
         }
         else if (Scenario.HasFailed)
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("❌ Mission failed - Life support critical!"));
             logWriter.WriteLine("❌ Mission failed - Life support critical!");
         }
         else
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("❌ Failed to resolve scenario within time limit."));
             logWriter.WriteLine("❌ Failed to resolve scenario within time limit.");
         }
 
@@ -201,37 +230,50 @@ public class Simulation : SimulationEventPublisher
         var lifeSupportTasks = Scenario.GetLifeSupportTasks();
         if (lifeSupportTasks.Any())
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("\nLife Support Maintenance Summary:"));
             logWriter.WriteLine("\nLife Support Maintenance Summary:");
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Maintenance Tasks Completed: {Scenario.CompletedLifeSupportTaskCount()}/{lifeSupportTasks.Count}"));
             logWriter.WriteLine($"Maintenance Tasks Completed: {Scenario.CompletedLifeSupportTaskCount()}/{lifeSupportTasks.Count}");
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Completion Rate: {Scenario.LifeSupportTaskCompletionRate() * 100:F1}%"));
             logWriter.WriteLine($"Completion Rate: {Scenario.LifeSupportTaskCompletionRate() * 100:F1}%");
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Final Life Support: {Scenario.LifeSupport}"));
             logWriter.WriteLine($"Final Life Support: {Scenario.LifeSupport}");
+            OnLogMessageGenerated(new SimulationLogEventArgs($"Final Decay Rate: {Scenario.ActualLifeSupportDecay}/step (Base: {Scenario.LifeSupportDecay})"));
             logWriter.WriteLine($"Final Decay Rate: {Scenario.ActualLifeSupportDecay}/step (Base: {Scenario.LifeSupportDecay})");
         }
 
         // Show final task status
+        OnLogMessageGenerated(new SimulationLogEventArgs("\nFinal Task Status:"));
         logWriter.WriteLine("\nFinal Task Status:");
         foreach (var task in Scenario.Tasks)
         {
             var status = task.IsCompleted ? "✅" : "❌";
+            OnLogMessageGenerated(new SimulationLogEventArgs($"{status} {task.Name} ({task.Type}): {task.Progress}/{task.RequiredProgress}"));
             logWriter.WriteLine($"{status} {task.Name} ({task.Type}): {task.Progress}/{task.RequiredProgress}");
         }
 
         // Show detailed event summary
         if (Scenario.DetailedEventLog.Any())
         {
+            OnLogMessageGenerated(new SimulationLogEventArgs("\nEvent Summary:"));
             logWriter.WriteLine("\nEvent Summary:");
             foreach (var eventEntry in Scenario.DetailedEventLog)
             {
+                OnLogMessageGenerated(new SimulationLogEventArgs($"• {eventEntry.TimeStamp} - {eventEntry.EventName}"));
                 logWriter.WriteLine($"• {eventEntry.TimeStamp} - {eventEntry.EventName}");
+                OnLogMessageGenerated(new SimulationLogEventArgs($"  {eventEntry.EventDescription}"));
                 logWriter.WriteLine($"  {eventEntry.EventDescription}");
                 if (eventEntry.Effects.Any())
                 {
+                    OnLogMessageGenerated(new SimulationLogEventArgs("  Effects:"));
                     logWriter.WriteLine("  Effects:");
                     foreach (var effect in eventEntry.Effects)
                     {
+                        OnLogMessageGenerated(new SimulationLogEventArgs($"    - {effect}"));
                         logWriter.WriteLine($"    - {effect}");
                     }
                 }
+                OnLogMessageGenerated(new SimulationLogEventArgs(""));
                 logWriter.WriteLine();
             }
         }
