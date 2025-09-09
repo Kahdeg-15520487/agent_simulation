@@ -19,7 +19,7 @@ namespace AgentSimulation.UI
         private Button btnStep;
         private ProgressBar progressBarSimulation;
         private ProgressBar progressBarLifeSupport;
-        private ListBox listBoxLog;
+        private RichTextBox richTextBoxLog;
         private ListView listViewTasks;
         private Label lblSimulationStatus;
         private Label lblStepInfo;
@@ -76,13 +76,16 @@ namespace AgentSimulation.UI
             listViewTasks.Columns.Add("Status", 80);
             listViewTasks.Columns.Add("Type", 100);
 
-            // Log list box
-            listBoxLog = new ListBox
+            // Log rich text box for colorful output
+            richTextBoxLog = new RichTextBox
             {
                 Location = new Point(520, 110),
                 Size = new Size(660, 500),
-                ScrollAlwaysVisible = true,
-                HorizontalScrollbar = true
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                ReadOnly = true,
+                BackColor = Color.Black,
+                Font = new Font("Consolas", 9),
+                WordWrap = true
             };
 
             // User input panel (initially hidden)
@@ -127,7 +130,7 @@ namespace AgentSimulation.UI
                 btnStart, btnStop, btnPause, btnStep, chkAutoStep,
                 lblSimulationStatus, lblStepInfo, lblLifeSupportInfo,
                 progressBarSimulation, progressBarLifeSupport,
-                listViewTasks, listBoxLog, pnlUserInput
+                listViewTasks, richTextBoxLog, pnlUserInput
             });
 
             this.ResumeLayout();
@@ -160,10 +163,13 @@ namespace AgentSimulation.UI
                 new AgentSimulation.Agents.LLMAgent("Bob", "Cautious", endpoint: "http://localhost:8080"),
                 new AgentSimulation.Agents.HumanAgent("Charlie")
             };
+            
+            // Create simulation with colored log writer to avoid duplication
+            var logWriter = new ThreadSafeRichTextBoxWriter(richTextBoxLog, AddLogMessage);
             simulation = new Simulation(
                 ScenarioLibrary.GetCrashedSpaceshipScenario(), 
                 agents,
-                new ThreadSafeTextBoxWriter(listBoxLog), 
+                logWriter, 
                 "http://localhost:8080"
             );
 
@@ -530,17 +536,58 @@ namespace AgentSimulation.UI
 
         private void AddLogMessage(string message)
         {
-            listBoxLog.Items.Add(message);
-            AutoScrollLogToBottom();
+            AddLogMessage(message, GetMessageColor(message));
+        }
+
+        private void AddLogMessage(string message, Color color)
+        {
+            if (richTextBoxLog.InvokeRequired)
+            {
+                richTextBoxLog.Invoke(new Action(() => AppendColoredText(message, color)));
+            }
+            else
+            {
+                AppendColoredText(message, color);
+            }
+        }
+
+        private Color GetMessageColor(string message)
+        {
+            // Determine color based on message content and prefixes
+            if (message.Contains("🔍") || message.Contains("💭") || message.Contains("thinks:") || message.Contains("Analyzing"))
+                return Color.Cyan;
+            if (message.Contains("🤖") || message.Contains("⚡") || message.Contains("🔧") || message.Contains("performs:") || message.Contains("works on"))
+                return Color.Yellow;
+            if (message.Contains("✅") || message.Contains("🎉") || message.Contains("completed") || message.Contains("Mission accomplished"))
+                return Color.LightGreen;
+            if (message.Contains("❌") || message.Contains("💀") || message.Contains("failed") || message.Contains("Mission failed"))
+                return Color.Red;
+            if (message.Contains("⚠️") || message.Contains("warning") || message.Contains("Life Support:") || message.Contains("critical"))
+                return Color.Orange;
+            if (message.Contains("🎮") || message.Contains("Human") || message.Contains("chose:") || message.Contains("Waiting for"))
+                return Color.Magenta;
+            if (message.Contains("ℹ️") || message.Contains("Step") || message.Contains("===") || message.Contains("SIMULATION"))
+                return Color.LightBlue;
+            
+            return Color.White; // Default color
+        }
+
+        private void AppendColoredText(string text, Color color)
+        {
+            richTextBoxLog.SelectionStart = richTextBoxLog.TextLength;
+            richTextBoxLog.SelectionLength = 0;
+            richTextBoxLog.SelectionColor = color;
+            richTextBoxLog.AppendText(text + Environment.NewLine);
+            richTextBoxLog.SelectionColor = Color.White; // Reset to default
+            
+            // Auto-scroll to bottom
+            richTextBoxLog.SelectionStart = richTextBoxLog.Text.Length;
+            richTextBoxLog.ScrollToCaret();
         }
 
         private void AutoScrollLogToBottom()
         {
-            if (listBoxLog.Items.Count > 0)
-            {
-                listBoxLog.TopIndex = listBoxLog.Items.Count - 1;
-                listBoxLog.SelectedIndex = listBoxLog.Items.Count - 1;
-            }
+            // This method is now handled in AppendColoredText
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)

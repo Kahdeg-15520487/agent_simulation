@@ -42,7 +42,11 @@ public class Scenario
         // Create tasks from definitions
         foreach (var taskDef in definition.TaskDefinitions)
         {
-            Tasks.Add(new SimulationTask(taskDef));
+            var task = new SimulationTask(taskDef);
+            if (!AddTaskSafely(task, allowDuplicates: true)) // Allow duplicates during initial load for flexibility
+            {
+                Console.WriteLine($"Warning: Duplicate task '{task.Name}' found in scenario definition");
+            }
         }
 
         // Initialize active events
@@ -201,10 +205,16 @@ public class Scenario
                 if (!string.IsNullOrEmpty(effect.NewTaskName) && !string.IsNullOrEmpty(effect.NewTaskDescription))
                 {
                     var newTask = new SimulationTask(effect.NewTaskName, effect.NewTaskDescription, effect.Value > 0 ? effect.Value : 100, TaskType.Other);
-                    Tasks.Add(newTask);
-                    var newTaskMsg = $"New task added: {effect.NewTaskName}";
-                    Console.WriteLine(newTaskMsg);
-                    eventLogEntry.Effects.Add($"New task added: '{effect.NewTaskName}' (Required: {newTask.RequiredProgress})");
+                    if (AddTaskSafely(newTask))
+                    {
+                        var newTaskMsg = $"New task added: {effect.NewTaskName}";
+                        Console.WriteLine(newTaskMsg);
+                        eventLogEntry.Effects.Add($"New task added: '{effect.NewTaskName}' (Required: {newTask.RequiredProgress})");
+                    }
+                    else
+                    {
+                        eventLogEntry.Effects.Add($"Duplicate task '{effect.NewTaskName}' prevented");
+                    }
                 }
                 break;
 
@@ -270,8 +280,11 @@ public class Scenario
                             }
                             
                             var newTask = new SimulationTask(newTaskDef);
-                            Tasks.Add(newTask);
-                            Console.WriteLine($"   ➕ New task added: '{action.NewTaskName}' ({action.NewTaskType})");
+                            // For recurring tasks, allow duplicates since they represent repeated actions
+                            if (AddTaskSafely(newTask, action.IsRecurring))
+                            {
+                                Console.WriteLine($"   ➕ New task added: '{action.NewTaskName}' ({action.NewTaskType})");
+                            }
                         }
                         break;
                         
@@ -301,5 +314,33 @@ public class Scenario
             
             task.MarkCompletionActionsTriggered();
         }
+    }
+
+    /// <summary>
+    /// Checks if a task with the given name already exists in the current task list
+    /// </summary>
+    /// <param name="taskName">The name of the task to check for</param>
+    /// <returns>True if a task with the same name exists, false otherwise</returns>
+    private bool TaskExists(string taskName)
+    {
+        return Tasks.Any(t => string.Equals(t.Name, taskName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Safely adds a new task to the task list, preventing duplicates
+    /// </summary>
+    /// <param name="newTask">The task to add</param>
+    /// <param name="allowDuplicates">Whether to allow tasks with the same name (default: false)</param>
+    /// <returns>True if the task was added, false if it was a duplicate and not added</returns>
+    private bool AddTaskSafely(SimulationTask newTask, bool allowDuplicates = false)
+    {
+        if (!allowDuplicates && TaskExists(newTask.Name))
+        {
+            Console.WriteLine($"   ⚠️ Task '{newTask.Name}' already exists - skipping duplicate");
+            return false;
+        }
+        
+        Tasks.Add(newTask);
+        return true;
     }
 }
