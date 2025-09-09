@@ -160,37 +160,49 @@ namespace AgentSimulation.UI
         {
             if (simulation != null && simulation.IsRunning) return;
 
-            cancellationTokenSource?.Cancel();
-            cancellationTokenSource = new CancellationTokenSource();
-
-            var agents = new List<AgentSimulation.Agents.Agent>()
+            // Show the simulation setup dialog
+            using (var setupDialog = new SimulationSetupDialog())
             {
-                new AgentSimulation.Agents.Agent("Alice", "Brave"),
-                new AgentSimulation.Agents.LLMAgent("Bob", "Cautious", endpoint: "http://localhost:8080"),
-                new AgentSimulation.Agents.HumanAgent("Charlie")
-            };
-            
-            // Create simulation with colored log writer to avoid duplication
-            var logWriter = new ThreadSafeRichTextBoxWriter(richTextBoxLog, AddLogMessage);
-            simulation = new Simulation(
-                ScenarioLibrary.GetCrashedSpaceshipScenario(), 
-                agents,
-                logWriter, 
-                "http://localhost:8080"
-            );
+                if (setupDialog.ShowDialog(this) != DialogResult.OK || !setupDialog.StartSimulation)
+                {
+                    return; // User cancelled or didn't start simulation
+                }
 
-            // Set the agents on the simulation
-            simulation.Agents = agents;
+                // Get the selected scenario and team from the dialog
+                var selectedScenario = setupDialog.SelectedScenario;
+                var teamAgents = setupDialog.TeamAgents;
 
-            SubscribeToSimulationEvents();
+                if (selectedScenario == null || teamAgents.Count == 0)
+                {
+                    MessageBox.Show("Invalid scenario or team configuration.", "Setup Error", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
-            btnStart.Enabled = false;
-            btnStop.Enabled = true;
-            btnPause.Enabled = true;
-            btnStep.Enabled = true;
+                cancellationTokenSource?.Cancel();
+                cancellationTokenSource = new CancellationTokenSource();
 
-            await Task.Run(() => simulation.Start(), cancellationTokenSource.Token);
-            UpdateUI();
+                // Create simulation with selected scenario and team
+                var logWriter = new ThreadSafeRichTextBoxWriter(richTextBoxLog, AddLogMessage);
+                simulation = new Simulation(
+                    selectedScenario, 
+                    teamAgents,
+                    logWriter
+                );
+
+                // Set the agents on the simulation
+                simulation.Agents = teamAgents;
+
+                SubscribeToSimulationEvents();
+
+                btnStart.Enabled = false;
+                btnStop.Enabled = true;
+                btnPause.Enabled = true;
+                btnStep.Enabled = true;
+
+                await Task.Run(() => simulation.Start(), cancellationTokenSource.Token);
+                UpdateUI();
+            }
         }
 
         private void BtnStop_Click(object sender, EventArgs e)

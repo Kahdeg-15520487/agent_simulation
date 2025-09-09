@@ -13,7 +13,7 @@ public class LLMAgent : Agent
 {
     private readonly HttpClient _httpClient;
     private readonly string _model;
-    private readonly string _endpoint;
+    public string Endpoint { get; set; }
     private int taskIndex = -1;
 
     public LLMAgent(string name, string personality, string model = "llama2", string endpoint = "http://localhost:5000")
@@ -21,13 +21,14 @@ public class LLMAgent : Agent
     {
         _httpClient = new HttpClient();
         _model = model;
-        _endpoint = endpoint;
+        Endpoint = endpoint;
     }
 
     public override string Think(Scenario scenario)
     {
         // Generate thought using LLM
-        var llmThought = JsonSerializer.Deserialize<LLMThought>(GenerateThoughtWithLLM(scenario).Result); // Synchronous for simplicity
+        var raw = GenerateThoughtWithLLM(scenario).Result;
+        var llmThought = JsonSerializer.Deserialize<LLMThought>(raw); // Synchronous for simplicity
         CurrentThought = llmThought.thought;
         taskIndex = llmThought.task_index;
         Memory.Add(CurrentThought);
@@ -49,7 +50,7 @@ public class LLMAgent : Agent
                 }
             };
 
-            var response = await _httpClient.PostAsJsonAsync($"{_endpoint}/v1/chat/completions", request);
+            var response = await _httpClient.PostAsJsonAsync($"{Endpoint}/v1/chat/completions", request);
             response.EnsureSuccessStatusCode();
 
             var result = await response.Content.ReadFromJsonAsync<JsonElement>();

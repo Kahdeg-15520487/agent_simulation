@@ -20,7 +20,7 @@ public class Simulation : SimulationEventPublisher
     public bool IsRunning { get; private set; } = false;
     public bool IsCompleted { get; private set; } = false;
 
-    public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, TextWriter logWriter, string llmEndpoint = "http://localhost:5000", int seed = -1)
+    public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, TextWriter logWriter, int seed = -1)
     {
         Scenario = new Scenario(scenarioDefinition, seed);
         Agents = agents.Select(a => { a.Simulation = this; return a; }).ToList();
