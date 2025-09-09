@@ -84,7 +84,7 @@ namespace AgentSimulation.UI
             listViewEffects = new ListView
             {
                 Location = new Point(10, 270),
-                Size = new Size(500, 100),
+                Size = new Size(500, 120),
                 View = View.Details,
                 FullRowSelect = true,
                 GridLines = true
@@ -109,8 +109,8 @@ namespace AgentSimulation.UI
             // User input panel (initially hidden)
             pnlUserInput = new Panel
             {
-                Location = new Point(10, 320),
-                Size = new Size(500, 190),
+                Location = new Point(10, 360),
+                Size = new Size(500, 250),
                 BorderStyle = BorderStyle.FixedSingle,
                 Visible = false,
                 BackColor = Color.LightYellow
@@ -119,7 +119,7 @@ namespace AgentSimulation.UI
             lblUserPrompt = new Label
             {
                 Location = new Point(10, 10),
-                Size = new Size(480, 60),
+                Size = new Size(480, 40),
                 Text = "User input required:",
                 AutoSize = false,
                 Font = new Font("Segoe UI", 9, FontStyle.Bold)
@@ -127,8 +127,8 @@ namespace AgentSimulation.UI
 
             listBoxUserOptions = new ListBox
             {
-                Location = new Point(10, 75),
-                Size = new Size(480, 80)
+                Location = new Point(10, 55),
+                Size = new Size(480, 100)
             };
 
             btnSubmitUserInput = new Button
@@ -613,7 +613,7 @@ namespace AgentSimulation.UI
         {
             if (simulation == null) return;
 
-            var effects = simulation.Scenario.GetActiveEffectsSummary();
+            var effects = simulation.Scenario.EffectManager.GetEffectDisplayStrings();
             
             listViewEffects.Items.Clear();
             foreach (var effectStr in effects)

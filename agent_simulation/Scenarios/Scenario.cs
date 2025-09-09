@@ -178,13 +178,13 @@ public class Scenario
 
         foreach (var effect in activeEvent.Definition.Effects)
         {
-            ApplyEventEffect(effect, eventLogEntry, activeEvent);
+            ApplyEventEffect(effect, eventLogEntry);
         }
 
         DetailedEventLog.Add(eventLogEntry);
     }
 
-    private void ApplyEventEffect(EventEffect effect, EventLogEntry eventLogEntry, ActiveEvent activeEvent)
+    private void ApplyEventEffect(EventEffect effect, EventLogEntry eventLogEntry)
     {
         switch (effect.Type)
         {
@@ -286,7 +286,7 @@ public class Scenario
                         effect.EffectMultiplier,
                         effect.EffectFlatValue,
                         effect.EffectDuration,
-                        $"Event: {activeEvent.Definition.Name}"
+                        $"Event: {eventLogEntry.EventName}"
                     );
                     
                     // Set target-specific properties
@@ -473,35 +473,5 @@ public class Scenario
         
         Tasks.Add(newTask);
         return true;
-    }
-
-    /// <summary>
-    /// Get a summary of active effects for display
-    /// </summary>
-    public List<string> GetActiveEffectsSummary()
-    {
-        return EffectManager.GetEffectDisplayStrings();
-    }
-
-    /// <summary>
-    /// Add a scenario effect directly (useful for testing or manual events)
-    /// </summary>
-    public void AddEffect(ScenarioEffect effect)
-    {
-        EffectManager.AddEffect(effect);
-        LogsWriter.WriteLine($"Effect added: {effect.GetDisplayString()}");
-    }
-
-    /// <summary>
-    /// Remove a scenario effect by ID
-    /// </summary>
-    public bool RemoveEffect(Guid effectId)
-    {
-        if (EffectManager.RemoveEffect(effectId))
-        {
-            LogsWriter.WriteLine("Effect removed successfully");
-            return true;
-        }
-        return false;
     }
 }
