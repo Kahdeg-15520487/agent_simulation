@@ -42,7 +42,7 @@ namespace AgentSimulation.UI
 
             // Form setup
             this.Text = "Agent Simulation Dashboard";
-            this.Size = new Size(1200, 800);
+            this.Size = new Size(1200, 650);
             this.StartPosition = FormStartPosition.CenterScreen;
 
             // Control buttons
@@ -89,7 +89,7 @@ namespace AgentSimulation.UI
             pnlUserInput = new Panel
             {
                 Location = new Point(10, 320),
-                Size = new Size(500, 150),
+                Size = new Size(500, 190),
                 BorderStyle = BorderStyle.FixedSingle,
                 Visible = false,
                 BackColor = Color.LightYellow
@@ -98,22 +98,24 @@ namespace AgentSimulation.UI
             lblUserPrompt = new Label
             {
                 Location = new Point(10, 10),
-                Size = new Size(480, 40),
+                Size = new Size(480, 60),
                 Text = "User input required:",
-                AutoSize = false
+                AutoSize = false,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
 
             listBoxUserOptions = new ListBox
             {
-                Location = new Point(10, 55),
-                Size = new Size(480, 60)
+                Location = new Point(10, 75),
+                Size = new Size(480, 80)
             };
 
             btnSubmitUserInput = new Button
             {
                 Text = "Submit",
-                Location = new Point(410, 120),
-                Size = new Size(80, 25)
+                Location = new Point(410, 160),
+                Size = new Size(80, 25),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold)
             };
 
             pnlUserInput.Controls.Add(lblUserPrompt);
@@ -156,15 +158,17 @@ namespace AgentSimulation.UI
             {
                 new AgentSimulation.Agents.Agent("Alice", "Brave"),
                 new AgentSimulation.Agents.LLMAgent("Bob", "Cautious", endpoint: "http://localhost:8080"),
-                new AgentSimulation.Agents.HumanAgent("Charlie", () => GetUserInput())
+                new AgentSimulation.Agents.HumanAgent("Charlie")
             };
-
             simulation = new Simulation(
                 ScenarioLibrary.GetCrashedSpaceshipScenario(), 
-                agents, 
+                agents,
                 new ThreadSafeTextBoxWriter(listBoxLog), 
                 "http://localhost:8080"
             );
+
+            // Set the agents on the simulation
+            simulation.Agents = agents;
 
             SubscribeToSimulationEvents();
 
@@ -263,16 +267,24 @@ namespace AgentSimulation.UI
         {
             if (currentUserInputRequest != null && listBoxUserOptions.SelectedIndex >= 0)
             {
+                var selectedOption = currentUserInputRequest.Options[listBoxUserOptions.SelectedIndex];
+                
+                // Log the user's choice
+                AddLogMessage($"🎮 {currentUserInputRequest.RequestingAgent.Name} chose: {selectedOption}");
+                
+                // Send the result (0-based index)
                 currentUserInputRequest.ResponseTask.SetResult(listBoxUserOptions.SelectedIndex);
+                
+                // Hide panel and resume simulation
                 pnlUserInput.Visible = false;
                 currentUserInputRequest = null;
+                
+                // Resume simulation if it was running
+                if (simulation?.IsRunning == true && simulation.IsPaused)
+                {
+                    simulation.Resume();
+                }
             }
-        }
-
-        private int GetUserInput()
-        {
-            // This will be handled by the UserInputRequested event
-            return 0;
         }
 
         private void SubscribeToSimulationEvents()
@@ -414,21 +426,30 @@ namespace AgentSimulation.UI
             this.Invoke(() =>
             {
                 currentUserInputRequest = e;
-                lblUserPrompt.Text = $"{e.RequestingAgent.Name}: {e.Prompt}";
                 
+                // Format the prompt with agent name
+                lblUserPrompt.Text = $"🎮 {e.RequestingAgent.Name}'s Turn\n{e.Prompt}";
+                
+                // Clear and populate options
                 listBoxUserOptions.Items.Clear();
-                foreach (var option in e.Options)
+                for (int i = 0; i < e.Options.Count; i++)
                 {
-                    listBoxUserOptions.Items.Add(option);
+                    listBoxUserOptions.Items.Add($"{i + 1}. {e.Options[i]}");
                 }
                 
+                // Auto-select first option
                 if (listBoxUserOptions.Items.Count > 0)
                 {
                     listBoxUserOptions.SelectedIndex = 0;
                 }
                 
+                // Show the input panel and pause simulation
+                simulation?.Pause();
                 pnlUserInput.Visible = true;
                 pnlUserInput.BringToFront();
+                
+                // Also add to log
+                AddLogMessage($"🎮 Waiting for {e.RequestingAgent.Name} to make a decision...");
             });
         }
 

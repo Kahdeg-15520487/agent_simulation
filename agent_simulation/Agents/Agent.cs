@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using AgentSimulation.Core;
 using AgentSimulation.Scenarios;
 
 namespace AgentSimulation.Agents;
@@ -12,6 +13,7 @@ public class Agent
     public string Personality { get; set; } // e.g., "Brave", "Cautious", "Logical"
     public List<string> Memory { get; set; } = new();
     public string CurrentThought { get; set; }
+    public Simulation? Simulation { get; set; }
 
     public Agent(string name, string personality)
     {

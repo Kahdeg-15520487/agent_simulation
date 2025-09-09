@@ -2,18 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using AgentSimulation.Scenarios;
+using AgentSimulation.Core;
 
 namespace AgentSimulation.Agents;
 
 public class HumanAgent : Agent
 {
-    private Func<int> actionSelector;
-
-    public HumanAgent(string name, Func<int> actionSelector) : base(name, "Human-Controlled")
-    {
-        this.actionSelector = actionSelector;
-    }
+    public HumanAgent(string name) : base(name, "Human-Controlled") { }
 
     public override string Think(Scenario scenario)
     {
@@ -32,26 +29,8 @@ public class HumanAgent : Agent
             return logs.ToString();
         }
 
-        //logs.AppendLine($"\n🎯 {Name}'s Turn - Choose a task to work on:");
-        //logs.AppendLine($"Current Thought: {CurrentThought}");
-        //logs.AppendLine("\nAvailable Tasks:");
+        int choice = GetUserChoiceAsync(incompleteTasks).Result;
 
-        //for (int i = 0; i < incompleteTasks.Count; i++)
-        //{
-        //    var task = incompleteTasks[i];
-        //    var completionPercent = (task.Progress * 100.0 / task.RequiredProgress);
-        //    var statusIcon = GetTaskStatusIcon(task);
-        //    logs.AppendLine($"{i + 1}. {statusIcon} {task.Name} [{task.Type}]");
-        //    logs.AppendLine($"   Progress: {task.Progress}/{task.RequiredProgress} ({completionPercent:F1}%)");
-        //    logs.AppendLine($"   Description: {task.Description}");
-        //}
-
-        // Show colony stats for informed decision making
-        //logs.AppendLine($"\n📊 Colony Stats: {scenario.ColonyStats.GetStatusSummary()}");
-        //logs.AppendLine($"💚 Life Support: {scenario.LifeSupport} (Efficiency: {scenario.ColonyStats.LifeSupportEfficiency:F1}x)");
-
-        // Get user choice
-        int choice = (actionSelector?.Invoke()).Value;
         if (choice == -1)
         {
             logs.AppendLine($"{Name} decides to skip this turn.");
@@ -59,6 +38,36 @@ public class HumanAgent : Agent
         }
 
         return base.Act(scenario, choice - 1);
+    }
+
+    private async Task<int> GetUserChoiceAsync(List<Tasks.SimulationTask> incompleteTasks)
+    {
+        if (this.Simulation == null) return 1;
+
+        var options = new List<string>();
+        for (int i = 0; i < incompleteTasks.Count; i++)
+        {
+            var task = incompleteTasks[i];
+            var completionPercent = (task.Progress * 100.0 / task.RequiredProgress);
+            var statusIcon = GetTaskStatusIcon(task);
+            options.Add($"{statusIcon} {task.Name} [{task.Type}] - {completionPercent:F1}% complete");
+        }
+        options.Add("❌ Skip this turn");
+
+        string prompt = $"Choose a task to work on:\n\n📊 Current situation:\n" +
+                       $"� Life Support: {this.Simulation.GetSimulationStatus().LifeSupport}\n" +
+                       $"⏱️ Step: {this.Simulation.GetSimulationStatus().CurrentStep}/{this.Simulation.GetSimulationStatus().MaxSteps}";
+
+        int result = await this.Simulation.RequestUserInputAsync(this, prompt, options);
+
+        // If user selected "Skip this turn" (last option), return -1
+        if (result == options.Count - 1)
+        {
+            return -1;
+        }
+
+        // Otherwise return 1-based index for the selected task
+        return result + 1;
     }
 
     private string GetTaskStatusIcon(Tasks.SimulationTask task)

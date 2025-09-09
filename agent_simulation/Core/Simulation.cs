@@ -23,7 +23,7 @@ public class Simulation : SimulationEventPublisher
     public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, TextWriter logWriter, string llmEndpoint = "http://localhost:5000", int seed = -1)
     {
         Scenario = new Scenario(scenarioDefinition, seed);
-        Agents = agents;
+        Agents = agents.Select(a => { a.Simulation = this; return a; }).ToList();
         this.logWriter = logWriter;
     }
 
@@ -67,11 +67,11 @@ public class Simulation : SimulationEventPublisher
         if (!IsRunning || IsCompleted || IsPaused) return false;
 
         CurrentStep++;
-        
+
         // Fire step started event
         OnStepStarted(new SimulationStepEventArgs(CurrentStep, MaxSteps));
         OnLogMessageGenerated(new SimulationLogEventArgs($"Step {CurrentStep} - {Scenario.Time}"));
-        
+
         logWriter.WriteLine($"Step {CurrentStep} - {Scenario.Time}");
 
         // Check if mission is successful before continuing
@@ -86,10 +86,10 @@ public class Simulation : SimulationEventPublisher
         foreach (var agent in Agents)
         {
             logWriter.WriteLine($"\n{agent.Name}:");
-            
+
             string thought = agent.Think(Scenario);
             logWriter.WriteLine(thought);
-            
+
             string action = agent.Act(Scenario);
             logWriter.WriteLine(action);
 
@@ -114,7 +114,7 @@ public class Simulation : SimulationEventPublisher
             if (tasksBefore.TryGetValue(task.Name, out int previousProgress) && previousProgress != task.Progress)
             {
                 OnTaskProgressUpdated(new TaskStatusEventArgs(task, previousProgress, task.Progress));
-                
+
                 if (task.IsCompleted && previousProgress < task.RequiredProgress)
                 {
                     OnTaskCompleted(new TaskCompletedEventArgs(task));
@@ -157,10 +157,10 @@ public class Simulation : SimulationEventPublisher
         }
 
         logWriter.WriteLine();
-        
+
         // Fire step completed event
         OnStepCompleted(new SimulationStepEventArgs(CurrentStep, MaxSteps));
-        
+
         return true;
     }
 
@@ -173,7 +173,7 @@ public class Simulation : SimulationEventPublisher
         string statusMessage = Scenario.IsSuccessful ? "Scenario resolved successfully!" :
                               Scenario.HasFailed ? "Mission failed - Life support critical!" :
                               "Failed to resolve scenario within time limit.";
-        
+
         OnSimulationCompleted(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, statusMessage));
 
         logWriter.WriteLine("=== SIMULATION END ===");
