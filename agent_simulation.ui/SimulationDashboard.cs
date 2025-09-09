@@ -3,7 +3,7 @@ using AgentSimulation.Scenarios;
 using AgentSimulation.Events;
 using System.Text;
 
-namespace agent_simulation.ui
+namespace AgentSimulation.UI
 {
     public partial class SimulationDashboard : Form
     {
