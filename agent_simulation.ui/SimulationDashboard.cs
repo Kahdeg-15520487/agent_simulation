@@ -34,6 +34,9 @@ namespace AgentSimulation.UI
         {
             InitializeComponent();
             SetupEventHandlers();
+            
+            // Enable keyboard event handling
+            this.KeyPreview = true;
         }
 
         private void InitializeComponent()
@@ -144,6 +147,9 @@ namespace AgentSimulation.UI
             btnStep.Click += BtnStep_Click;
             btnSubmitUserInput.Click += BtnSubmitUserInput_Click;
             chkAutoStep.CheckedChanged += ChkAutoStep_CheckedChanged;
+
+            // Add keyboard event handler for shortcuts
+            this.KeyDown += SimulationDashboard_KeyDown;
 
             // Setup timer for auto-stepping
             stepTimer = new System.Windows.Forms.Timer { Interval = 1000 };
@@ -293,6 +299,44 @@ namespace AgentSimulation.UI
             }
         }
 
+        private void SimulationDashboard_KeyDown(object sender, KeyEventArgs e)
+        {
+            // Only handle keyboard shortcuts when user input panel is visible
+            if (!pnlUserInput.Visible || currentUserInputRequest == null)
+                return;
+
+            // Handle number keys 1-9 for option selection
+            if (e.KeyCode >= Keys.D1 && e.KeyCode <= Keys.D9)
+            {
+                int optionIndex = (int)(e.KeyCode - Keys.D1); // Convert to 0-based index
+                
+                // Check if the option index is valid
+                if (optionIndex < listBoxUserOptions.Items.Count)
+                {
+                    listBoxUserOptions.SelectedIndex = optionIndex;
+                    AddLogMessage($"🎮 Selected option {optionIndex + 1}: {currentUserInputRequest.Options[optionIndex]}");
+                }
+            }
+            // Handle numpad keys 1-9 as well
+            else if (e.KeyCode >= Keys.NumPad1 && e.KeyCode <= Keys.NumPad9)
+            {
+                int optionIndex = (int)(e.KeyCode - Keys.NumPad1); // Convert to 0-based index
+                
+                // Check if the option index is valid
+                if (optionIndex < listBoxUserOptions.Items.Count)
+                {
+                    listBoxUserOptions.SelectedIndex = optionIndex;
+                    AddLogMessage($"🎮 Selected option {optionIndex + 1}: {currentUserInputRequest.Options[optionIndex]}");
+                }
+            }
+            // Handle Enter key to submit the selected option
+            else if (e.KeyCode == Keys.Enter && listBoxUserOptions.SelectedIndex >= 0)
+            {
+                // Simulate clicking the submit button
+                BtnSubmitUserInput_Click(btnSubmitUserInput, EventArgs.Empty);
+            }
+        }
+
         private void SubscribeToSimulationEvents()
         {
             if (simulation == null) return;
@@ -433,8 +477,8 @@ namespace AgentSimulation.UI
             {
                 currentUserInputRequest = e;
                 
-                // Format the prompt with agent name
-                lblUserPrompt.Text = $"🎮 {e.RequestingAgent.Name}'s Turn\n{e.Prompt}";
+                // Format the prompt with agent name and keyboard shortcuts
+                lblUserPrompt.Text = $"🎮 {e.RequestingAgent.Name}'s Turn\n{e.Prompt}\n\n⌨️ Shortcuts: Press 1-{e.Options.Count} to select, Enter to submit";
                 
                 // Clear and populate options
                 listBoxUserOptions.Items.Clear();
