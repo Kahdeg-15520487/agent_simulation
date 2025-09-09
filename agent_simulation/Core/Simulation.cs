@@ -90,7 +90,7 @@ public class Simulation : SimulationEventPublisher
             string thought = agent.Think(Scenario);
             logWriter.WriteLine(thought);
 
-            string action = agent.Act(Scenario);
+            string action = agent.Act(Scenario, null); // Use GUID-based version with null for random selection
             logWriter.WriteLine(action);
 
             // Fire agent action event
@@ -104,18 +104,20 @@ public class Simulation : SimulationEventPublisher
         }
 
         // Check for task progress updates before scenario update
-        var tasksBefore = Scenario.Tasks.ToDictionary(t => t.Name, t => t.Progress);
+        var tasksBefore = Scenario.Tasks.Select(t => new { Task = t, Name = t.Name, Progress = t.Progress }).ToList();
 
         Scenario.Update();
 
         // Check for task progress changes and fire events
         foreach (var task in Scenario.Tasks)
         {
-            if (tasksBefore.TryGetValue(task.Name, out int previousProgress) && previousProgress != task.Progress)
+            // Find the corresponding task from before the update by name and check if it exists
+            var previousTask = tasksBefore.FirstOrDefault(tb => tb.Name == task.Name && tb.Task == task);
+            if (previousTask != null && previousTask.Progress != task.Progress)
             {
-                OnTaskProgressUpdated(new TaskStatusEventArgs(task, previousProgress, task.Progress));
+                OnTaskProgressUpdated(new TaskStatusEventArgs(task, previousTask.Progress, task.Progress));
 
-                if (task.IsCompleted && previousProgress < task.RequiredProgress)
+                if (task.IsCompleted && previousTask.Progress < task.RequiredProgress)
                 {
                     OnTaskCompleted(new TaskCompletedEventArgs(task));
                 }
@@ -274,16 +276,23 @@ public class Simulation : SimulationEventPublisher
     /// </summary>
     public List<AgentSimulation.Events.TaskStatus> GetTaskStatuses()
     {
-        return Scenario.Tasks.Select(task => new AgentSimulation.Events.TaskStatus
-        {
-            Name = task.Name,
-            Description = task.Description,
-            Progress = task.Progress,
-            RequiredProgress = task.RequiredProgress,
-            IsCompleted = task.IsCompleted,
-            Type = task.Type,
-            ProgressPercentage = task.RequiredProgress > 0 ? (double)task.Progress / task.RequiredProgress * 100 : 0
-        }).ToList();
+        return Scenario.Tasks
+            .Select(task => new AgentSimulation.Events.TaskStatus
+            {
+                Id = task.Id,
+                Name = task.Name,
+                Description = task.Description,
+                Progress = task.Progress,
+                RequiredProgress = task.RequiredProgress,
+                IsCompleted = task.IsCompleted,
+                Type = task.Type,
+                IsImportant = task.IsImportant,
+                ProgressPercentage = task.RequiredProgress > 0 ? (double)task.Progress / task.RequiredProgress * 100 : 0
+            })
+            .OrderBy(task => task.IsCompleted) // Completed tasks last
+            .ThenByDescending(task => task.IsImportant) // Important tasks first
+            .ThenByDescending(task => task.ProgressPercentage) // More progress first
+            .ToList();
     }
 
     /// <summary>

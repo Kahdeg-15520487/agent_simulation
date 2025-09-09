@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using AgentSimulation.Core;
 using AgentSimulation.Scenarios;
+using AgentSimulation.Tasks;
 
 namespace AgentSimulation.Agents;
 
@@ -58,42 +59,64 @@ public class Agent
         return thoughts[random.Next(thoughts.Count)];
     }
 
-    public virtual string Act(Scenario scenario, int taskIndex = -1)
+    // GUID-based Act method for safer task referencing
+    public virtual string Act(Scenario scenario, Guid? taskId = null)
     {
-        // Choose a random incomplete task to work on
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         var logs = new StringBuilder();
         if (incompleteTasks.Any())
         {
             var random = new Random();
-            var task = taskIndex == -1 ? incompleteTasks[random.Next(incompleteTasks.Count)] : incompleteTasks[taskIndex];
-
-            // Base progress amount
-            var baseProgress = random.Next(5, 15);
-
-            // Apply colony stat bonuses
-            var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(task.Type);
-            var totalProgress = baseProgress + bonusProgress;
-
-            var oldProgress = task.Progress;
-            task.UpdateProgress(totalProgress);
-
-            // Report progress made
-            logs.AppendLine($"{Name} worked on {task.Name}:");
-            if (bonusProgress > 0)
+            
+            // Try to find task by GUID, fallback to random if not found
+            SimulationTask task;
+            if (taskId.HasValue)
             {
-                logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
+                task = incompleteTasks.FirstOrDefault(t => t.Id == taskId.Value) 
+                       ?? incompleteTasks[random.Next(incompleteTasks.Count)];
             }
             else
             {
-                logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
+                task = incompleteTasks[random.Next(incompleteTasks.Count)];
             }
 
-            // Report if task was completed
-            if (task.IsCompleted && oldProgress < task.RequiredProgress)
-            {
-                logs.AppendLine($"  ✅ {task.Name} COMPLETED!");
-            }
+            return ActOnTask(scenario, task, logs);
+        }
+        
+        logs.AppendLine($"{Name}: All tasks are completed!");
+        return logs.ToString();
+    }
+
+    // Extracted common logic for working on a task
+    private string ActOnTask(Scenario scenario, SimulationTask task, StringBuilder logs)
+    {
+        var random = new Random();
+        
+        // Base progress amount
+        var baseProgress = random.Next(5, 15);
+
+        // Apply colony stat bonuses
+        var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(task.Type);
+        var totalProgress = baseProgress + bonusProgress;
+
+        var oldProgress = task.Progress;
+        task.UpdateProgress(totalProgress);
+
+        // Report progress made
+        logs.AppendLine($"{Name} worked on {task.Name}:");
+        if (bonusProgress > 0)
+        {
+            logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
+        }
+        else
+        {
+            logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
+        }
+
+        // Report if task was completed
+        if (task.IsCompleted && oldProgress < task.RequiredProgress)
+        {
+            logs.AppendLine($"  ✅ {task.Name} COMPLETED!");
         }
 
         return logs.ToString();

@@ -43,6 +43,13 @@ public class Scenario
         foreach (var taskDef in definition.TaskDefinitions)
         {
             var task = new SimulationTask(taskDef);
+            
+            // Mark win condition tasks as important
+            if (definition.WinConditionTasks.Contains(task.Name))
+            {
+                task.IsImportant = true;
+            }
+            
             if (!AddTaskSafely(task, allowDuplicates: true)) // Allow duplicates during initial load for flexibility
             {
                 Console.WriteLine($"Warning: Duplicate task '{task.Name}' found in scenario definition");
@@ -266,12 +273,15 @@ public class Scenario
                                 action.NewTaskName, 
                                 action.NewTaskDescription ?? "Automatically generated task", 
                                 action.NewTaskRequiredProgress, 
-                                action.NewTaskType);
+                                action.NewTaskType,
+                                action.NewTaskIsImportant);
                             
-                            // If it's a recurring task, add the same completion actions
+                            // If it's a recurring task, add the same completion actions and inherit importance
                             if (action.IsRecurring)
                             {
                                 newTaskDef.CompletionActions.AddRange(task.CompletionActions);
+                                // Recurring tasks inherit the importance of their parent task
+                                newTaskDef.IsImportant = task.IsImportant;
                             }
                             // If the action specifies completion actions for the new task, add them
                             else if (action.NewTaskCompleteActions != null && action.NewTaskCompleteActions.Count > 0)

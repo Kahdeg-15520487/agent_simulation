@@ -31,6 +31,7 @@ public class TaskCompletionAction
     public string? NewTaskDescription { get; set; }
     public int NewTaskRequiredProgress { get; set; } = 100;
     public TaskType NewTaskType { get; set; } = TaskType.Other;
+    public bool NewTaskIsImportant { get; set; } = false; // Whether the new task should be marked as important
     public bool IsRecurring { get; set; } = false; // For survival tasks that repeat
     public List<TaskCompletionAction>? NewTaskCompleteActions { get; set; } // Completion actions for the new task
     public string? EventMessage { get; set; } // Message for triggered events
@@ -54,14 +55,16 @@ public class TaskDefinition
     public string Description { get; set; }
     public int RequiredProgress { get; set; } = 100;
     public TaskType Type { get; set; } = TaskType.Other;
+    public bool IsImportant { get; set; } = false; // Important tasks appear first in ordering
     public List<TaskCompletionAction> CompletionActions { get; set; } = new();
 
-    public TaskDefinition(string name, string description, int requiredProgress = 100, TaskType type = TaskType.Other)
+    public TaskDefinition(string name, string description, int requiredProgress = 100, TaskType type = TaskType.Other, bool isImportant = false)
     {
         Name = name;
         Description = description;
         RequiredProgress = requiredProgress;
         Type = type;
+        IsImportant = isImportant;
     }
 
     // Helper method to add completion actions
@@ -89,6 +92,13 @@ public class TaskDefinition
     public TaskDefinition GivesLifeSupportOnCompletion(int lifeSupportBonus)
     {
         CompletionActions.Add(new TaskCompletionAction(TaskCompletionAction.ActionType.IncreaseLifeSupport, lifeSupportBonus));
+        return this;
+    }
+
+    // Helper method to mark task as important
+    public TaskDefinition MarkAsImportant()
+    {
+        IsImportant = true;
         return this;
     }
 }

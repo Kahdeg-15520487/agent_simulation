@@ -14,7 +14,7 @@ public class LLMAgent : Agent
     private readonly HttpClient _httpClient;
     private readonly string _model;
     public string Endpoint { get; set; }
-    private int taskIndex = -1;
+    private Guid? selectedTaskId = null;
 
     public LLMAgent(string name, string personality, string model = "llama2", string endpoint = "http://localhost:5000")
         : base(name, personality)
@@ -30,7 +30,18 @@ public class LLMAgent : Agent
         var raw = GenerateThoughtWithLLM(scenario).Result;
         var llmThought = JsonSerializer.Deserialize<LLMThought>(raw); // Synchronous for simplicity
         CurrentThought = llmThought.thought;
-        taskIndex = llmThought.task_index;
+        
+        // Convert task index to GUID for safer referencing
+        var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
+        if (llmThought.task_index >= 0 && llmThought.task_index < incompleteTasks.Count)
+        {
+            selectedTaskId = incompleteTasks[llmThought.task_index].Id;
+        }
+        else
+        {
+            selectedTaskId = null; // Random selection
+        }
+        
         Memory.Add(CurrentThought);
         return CurrentThought;
     }
@@ -94,9 +105,9 @@ Respond in this format:
         return prompt.Trim();
     }
 
-    public override string Act(Scenario scenario, int _)
+    public override string Act(Scenario scenario, Guid? taskId = null)
     {
-        return base.Act(scenario, taskIndex);
+        return base.Act(scenario, selectedTaskId ?? taskId);
     }
 
     class LLMThought

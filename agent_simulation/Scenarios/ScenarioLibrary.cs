@@ -32,7 +32,8 @@ public static class ScenarioLibrary
                         NewTaskName = "Repair Hull Breach",
                         NewTaskDescription = "Seal the main hull breach to prevent atmosphere loss.",
                         NewTaskRequiredProgress = 80,
-                        NewTaskType = TaskType.Engineering
+                        NewTaskType = TaskType.Engineering,
+                        NewTaskIsImportant = true
                     },
                     new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
                     {
@@ -44,7 +45,7 @@ public static class ScenarioLibrary
                 }
             },
 
-            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 120, TaskType.Engineering)
+            new TaskDefinition("Fix Engine", "Repair the spaceship engine to enable takeoff.", 120, TaskType.Engineering, true)
             {
                 CompletionActions = new List<TaskCompletionAction>
                 {
@@ -55,6 +56,7 @@ public static class ScenarioLibrary
                         NewTaskDescription = "Run diagnostics and test the repaired engine before takeoff.",
                         NewTaskRequiredProgress = 50,
                         NewTaskType = TaskType.Engineering,
+                        NewTaskIsImportant = true,
                         NewTaskCompleteActions = new List<TaskCompletionAction>
                         {
                             new TaskCompletionAction(TaskCompletionAction.ActionType.AddNewTask, 0)
@@ -62,7 +64,8 @@ public static class ScenarioLibrary
                                 NewTaskName = "Launch Sequence",
                                 NewTaskDescription = "Initiate final pre-flight checks and launch the repaired spaceship.",
                                 NewTaskRequiredProgress = 100,
-                                NewTaskType = TaskType.Engineering
+                                NewTaskType = TaskType.Engineering,
+                                NewTaskIsImportant = true
                             }
                         }
                     },
@@ -108,7 +111,7 @@ public static class ScenarioLibrary
             },
             
             // Life Support and Maintenance
-            new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance)
+            new TaskDefinition("Maintain Life Support", "Ensure oxygen and power systems remain operational.", 60, TaskType.Maintenance, true)
             {
                 CompletionActions = new List<TaskCompletionAction>
                 {
@@ -279,9 +282,11 @@ public static class ScenarioLibrary
         definition.TaskDefinitions.AddRange(new[]
         {
             new TaskDefinition("Fortify Shelter", "Build barricades, reinforce doors, and create defensive positions.", 120, TaskType.Engineering),
-            new TaskDefinition("Find Cure", "Research zombie virus, analyze samples, and develop antidote.", 150, TaskType.Research),
+            new TaskDefinition("Find Cure", "Research zombie virus, analyze samples, and develop antidote.", 150, TaskType.Research)
+                .MarkAsImportant(),
             new TaskDefinition("Gather Medical Supplies", "Collect first aid kits, antibiotics, and medical equipment.", 90, TaskType.Resource),
-            new TaskDefinition("Clear Immediate Area", "Eliminate zombies from the facility and surrounding grounds.", 100, TaskType.Combat),
+            new TaskDefinition("Clear Immediate Area", "Eliminate zombies from the facility and surrounding grounds.", 100, TaskType.Combat)
+                .MarkAsImportant(),
             new TaskDefinition("Scavenge Food and Water", "Find canned goods, bottled water, and non-perishable supplies.", 80, TaskType.Resource),
             new TaskDefinition("Establish Communication", "Set up radio equipment to contact other survivor groups.", 60, TaskType.Engineering),
             new TaskDefinition("Treat Infected Wounds", "Provide medical care to prevent team members from turning.", 70, TaskType.Medical),
@@ -303,6 +308,7 @@ public static class ScenarioLibrary
                 
             // Win Condition Task - Only available once other key tasks are completed
             new TaskDefinition("Establish Safe Zone", "Create a permanent, secure settlement for survivors with the cure and defenses in place.", 150, TaskType.Engineering)
+                .MarkAsImportant()
         });
 
         // Set win condition tasks - need to complete the cure, clear area, and establish safe zone
@@ -440,15 +446,26 @@ public static class ScenarioLibrary
 
         definition.TaskDefinitions.AddRange(new[]
         {
-            new TaskDefinition("Fix Oxygen System", "Repair the oxygen recycling system damaged by the solar storm.", 80, TaskType.Maintenance),
-            new TaskDefinition("Restore Primary Power", "Fix the main power generator and backup systems.", 120, TaskType.Engineering),
-            new TaskDefinition("Seal Hull Breaches", "Repair structural damage to the station's outer hull.", 90, TaskType.Engineering),
-            new TaskDefinition("Reboot Navigation", "Restart and reprogram navigation computers to avoid asteroid field.", 70, TaskType.Engineering),
+            new TaskDefinition("Fix Oxygen System", "Repair the oxygen recycling system damaged by the solar storm.", 80, TaskType.Maintenance)
+                .MarkAsImportant(),
+            new TaskDefinition("Restore Primary Power", "Fix the main power generator and backup systems.", 120, TaskType.Engineering)
+                .MarkAsImportant(),
+            new TaskDefinition("Seal Hull Breaches", "Repair structural damage to the station's outer hull.", 90, TaskType.Engineering)
+                .MarkAsImportant(),
+            new TaskDefinition("Reboot Navigation", "Restart and reprogram navigation computers to avoid asteroid field.", 70, TaskType.Engineering)
+                .MarkAsImportant(),
             new TaskDefinition("Repair Communications", "Restore contact with Earth and nearby vessels.", 60, TaskType.Engineering),
-            new TaskDefinition("Stabilize Life Support Core", "Fix the central life support processing unit.", 100, TaskType.Maintenance),
+            new TaskDefinition("Stabilize Life Support Core", "Fix the central life support processing unit.", 100, TaskType.Maintenance)
+                .MarkAsImportant(),
             new TaskDefinition("Secure Emergency Supplies", "Gather emergency rations, water, and medical supplies.", 50, TaskType.Resource),
             new TaskDefinition("Conduct Emergency Medical Care", "Treat injured crew members from the initial damage.", 40, TaskType.Medical)
         });
+
+        // Set win condition tasks - critical systems that must be functional
+        definition.WinConditionTasks.Add("Fix Oxygen System");
+        definition.WinConditionTasks.Add("Restore Primary Power");
+        definition.WinConditionTasks.Add("Stabilize Life Support Core");
+        definition.WinConditionTasks.Add("Reboot Navigation");
 
         // Add complex event system
         var solarFlare = new EventDefinition("Solar Flare", "Another solar flare hits the station, causing additional system failures.", EventType.Negative)

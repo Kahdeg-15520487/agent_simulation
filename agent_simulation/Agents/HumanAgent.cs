@@ -19,7 +19,7 @@ public class HumanAgent : Agent
         return CurrentThought;
     }
 
-    public override string Act(Scenario scenario, int _)
+    public override string Act(Scenario scenario, Guid? taskId = null)
     {
         var logs = new StringBuilder();
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
@@ -29,45 +29,53 @@ public class HumanAgent : Agent
             return logs.ToString();
         }
 
-        int choice = GetUserChoiceAsync(incompleteTasks).Result;
+        var chosenTask = GetUserChoiceAsync(incompleteTasks).Result;
 
-        if (choice == -1)
+        if (chosenTask == null)
         {
             logs.AppendLine($"{Name} decides to skip this turn.");
             return logs.ToString();
         }
 
-        return base.Act(scenario, choice - 1);
+        // Use the GUID-based Act method with the chosen task
+        return base.Act(scenario, chosenTask.Id);
     }
 
-    private async Task<int> GetUserChoiceAsync(List<Tasks.SimulationTask> incompleteTasks)
+    private async Task<Tasks.SimulationTask?> GetUserChoiceAsync(List<Tasks.SimulationTask> incompleteTasks)
     {
-        if (this.Simulation == null) return 1;
+        if (this.Simulation == null) return null;
+
+        // Order tasks: Important tasks first, then by progress (more progress first), completed tasks last
+        var orderedTasks = incompleteTasks
+            .OrderByDescending(task => task.IsImportant) // Important tasks first
+            .ThenByDescending(task => (double)task.Progress / task.RequiredProgress) // More progress first
+            .ToList();
 
         var options = new List<string>();
-        for (int i = 0; i < incompleteTasks.Count; i++)
+        for (int i = 0; i < orderedTasks.Count; i++)
         {
-            var task = incompleteTasks[i];
+            var task = orderedTasks[i];
             var completionPercent = (task.Progress * 100.0 / task.RequiredProgress);
             var statusIcon = GetTaskStatusIcon(task);
-            options.Add($"{statusIcon} {task.Name} [{task.Type}] - {completionPercent:F1}% complete");
+            var importantFlag = task.IsImportant ? "⭐ " : "";
+            options.Add($"{statusIcon} {importantFlag}{task.Name} [{task.Type}] - {completionPercent:F1}% complete");
         }
         options.Add("❌ Skip this turn");
 
         string prompt = $"Choose a task to work on:\n\n📊 Current situation:\n" +
-                       $"� Life Support: {this.Simulation.GetSimulationStatus().LifeSupport}\n" +
+                       $"🫁 Life Support: {this.Simulation.GetSimulationStatus().LifeSupport}\n" +
                        $"⏱️ Step: {this.Simulation.GetSimulationStatus().CurrentStep}/{this.Simulation.GetSimulationStatus().MaxSteps}";
 
         int result = await this.Simulation.RequestUserInputAsync(this, prompt, options);
 
-        // If user selected "Skip this turn" (last option), return -1
+        // If user selected "Skip this turn" (last option), return null
         if (result == options.Count - 1)
         {
-            return -1;
+            return null;
         }
 
-        // Otherwise return 1-based index for the selected task
-        return result + 1;
+        // Return the selected task directly
+        return orderedTasks[result];
     }
 
     private string GetTaskStatusIcon(Tasks.SimulationTask task)

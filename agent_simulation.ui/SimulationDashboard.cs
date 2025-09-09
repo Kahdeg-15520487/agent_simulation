@@ -457,8 +457,12 @@ namespace AgentSimulation.UI
         {
             this.Invoke(() =>
             {
-                lblSimulationStatus.Text = e.IsRunning ? "Completed (Success)" : "Completed (Failed)";
-                lblSimulationStatus.ForeColor = e.IsRunning ? Color.Blue : Color.Red;
+                // Determine success based on the status message
+                bool isSuccess = e.StatusMessage != null && 
+                               (e.StatusMessage.Contains("successfully") || e.StatusMessage.Contains("✅"));
+                
+                lblSimulationStatus.Text = isSuccess ? "Completed (Success)" : "Completed (Failed)";
+                lblSimulationStatus.ForeColor = isSuccess ? Color.Green : Color.Red;
                 
                 isStepInProgress = false;
                 btnStart.Enabled = true;
@@ -540,7 +544,8 @@ namespace AgentSimulation.UI
             listViewTasks.Items.Clear();
             foreach (var task in taskStatuses)
             {
-                var item = new ListViewItem(task.Name);
+                var importantFlag = task.IsImportant ? "⭐ " : "";
+                var item = new ListViewItem($"{importantFlag}{task.Name}");
                 item.SubItems.Add(task.Progress.ToString());
                 item.SubItems.Add(task.RequiredProgress.ToString());
                 item.SubItems.Add(task.IsCompleted ? "✅ Done" : $"{task.ProgressPercentage:F0}%");
@@ -549,6 +554,10 @@ namespace AgentSimulation.UI
                 if (task.IsCompleted)
                 {
                     item.BackColor = Color.LightGreen;
+                }
+                else if (task.IsImportant)
+                {
+                    item.BackColor = Color.LightCoral; // Highlight important tasks
                 }
                 else if (task.ProgressPercentage > 50)
                 {
