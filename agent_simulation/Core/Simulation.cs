@@ -13,7 +13,6 @@ public class Simulation
     public int MaxSteps { get; set; } = 50;
     public bool IsRunning { get; private set; } = false;
     public bool IsCompleted { get; private set; } = false;
-    public List<string> Logs { get; private set; } = new();
 
     public Simulation(ScenarioDefinition scenarioDefinition, List<Agent> agents, string llmEndpoint = "http://localhost:5000", int seed = -1)
     {
@@ -29,20 +28,15 @@ public class Simulation
         if (includeHuman)
         {
             Agents.Add(new HumanAgent("Player"));
+            Agents.Add(new Agent("Alice", "Brave"));
+            Agents.Add(new Agent("Bob", "Cautious"));
         }
-        Agents.Add(new Agent("Alice", "Brave"));
-        Agents.Add(new Agent("Bob", "Cautious"));
-        Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
-    }
-
-    public void Log(string message)
-    {
-        Logs.Add(message);
-    }
-
-    public void ClearLogs()
-    {
-        Logs.Clear();
+        else
+        {
+            Agents.Add(new Agent("Alice", "Brave"));
+            Agents.Add(new Agent("Bob", "Cautious"));
+            Agents.Add(new LLMAgent("Charlie", "Logical", endpoint: llmEndpoint));
+        }
     }
 
     public void Start()
@@ -53,42 +47,40 @@ public class Simulation
         IsCompleted = false;
         CurrentStep = 0;
         
-        Log($"=== {Scenario.Name} ===");
-        Log(Scenario.Description);
-        if (Scenario.WinCondition != null) Log($"Win: {Scenario.WinCondition}");
-        if (Scenario.LoseCondition != null) Log($"Lose: {Scenario.LoseCondition}");
-        Log("");
+        Console.WriteLine($"=== {Scenario.Name} ===");
+        Console.WriteLine(Scenario.Description);
+        if (Scenario.WinCondition != null) Console.WriteLine($"Win: {Scenario.WinCondition}");
+        if (Scenario.LoseCondition != null) Console.WriteLine($"Lose: {Scenario.LoseCondition}");
+        Console.WriteLine();
         
         // Show team composition
-        Log("👥 TEAM ROSTER");
-        Log("=============");
+        Console.WriteLine("👥 TEAM ROSTER");
+        Console.WriteLine("=============");
         for (int i = 0; i < Agents.Count; i++)
         {
             var agent = Agents[i];
             var agentType = agent switch
             {
                 HumanAgent => "🎮 Human Player",
-                LLMAgent => "🤖 LLM Agent",
-                _ => "👤 Basic Agent"
+                LLMAgent => "🧠 AI Assistant",
+                _ => "🤖 Basic AI"
             };
-            Log($"{i + 1}. {agent.Name} - {agentType} ({agent.Personality})");
+            Console.WriteLine($"{i + 1}. {agent.Name} - {agentType} ({agent.Personality})");
         }
-        Log("");
+        Console.WriteLine();
     }
 
     public bool ExecuteStep()
     {
         if (!IsRunning || IsCompleted) return false;
-
+        
         CurrentStep++;
-        ClearLogs();
-
-        Log($"Step {CurrentStep} - {Scenario.Time}");
+        Console.WriteLine($"Step {CurrentStep} - {Scenario.Time}");
 
         // Check if mission is successful before continuing
         if (Scenario.IsSuccessful)
         {
-            Log("🎉 Mission accomplished! All tasks completed!");
+            Console.WriteLine("🎉 Mission accomplished! All tasks completed!");
             CompleteSimulation();
             return false;
         }
@@ -99,27 +91,14 @@ public class Simulation
             agent.Think(Scenario);
             agent.Act(Scenario);
             
-            // Collect agent logs
-            foreach (var log in agent.Logs)
-            {
-                Log(log);
-            }
-            
             // Add spacing after human player turn for better readability
             if (agent is HumanAgent)
             {
-                Log(new string('=', 50));
+                Console.WriteLine(new string('=', 50));
             }
         }
 
         Scenario.Update();
-
-        // Collect scenario logs
-        foreach (var log in Scenario.Logs)
-        {
-            Log(log);
-        }
-        Scenario.Logs.Clear();
 
         // Show life support status with maintenance task information
         var decayDisplay = Scenario.ActualLifeSupportDecay != Scenario.LifeSupportDecay
@@ -135,13 +114,13 @@ public class Simulation
             lifeSupportTaskInfo = $" [Maintenance: {completedCount}/{totalMaintenance} ({completionRate:F0}%)]";
         }
 
-        Log($"Life Support: {Scenario.LifeSupport} (Decay: {decayDisplay}){lifeSupportTaskInfo}");
-        Log($"Colony Stats: {Scenario.ColonyStats.GetStatusSummary()}");
+        Console.WriteLine($"Life Support: {Scenario.LifeSupport} (Decay: {decayDisplay}){lifeSupportTaskInfo}");
+        Console.WriteLine($"Colony Stats: {Scenario.ColonyStats.GetStatusSummary()}");
 
         // Check if mission has failed after the update
         if (Scenario.HasFailed)
         {
-            Log("💀 Mission failed! Life support has been depleted!");
+            Console.WriteLine("💀 Mission failed! Life support has been depleted!");
             CompleteSimulation();
             return false;
         }
@@ -149,12 +128,12 @@ public class Simulation
         // Check if we've reached max steps
         if (CurrentStep >= MaxSteps)
         {
-            Log("❌ Failed to resolve scenario within time limit.");
+            Console.WriteLine("❌ Failed to resolve scenario within time limit.");
             CompleteSimulation();
             return false;
         }
 
-        Log("");
+        Console.WriteLine();
         return true;
     }
 
@@ -163,18 +142,78 @@ public class Simulation
         IsRunning = false;
         IsCompleted = true;
         
-        Log("=== SIMULATION END ===");
+        Console.WriteLine("=== SIMULATION END ===");
         if (Scenario.IsSuccessful)
         {
-            Log("✅ Scenario resolved successfully!");
+            Console.WriteLine("✅ Scenario resolved successfully!");
         }
         else if (Scenario.HasFailed)
         {
-            Log("❌ Mission failed - Life support critical!");
+            Console.WriteLine("❌ Mission failed - Life support critical!");
         }
         else
         {
-            Log("❌ Failed to resolve scenario within time limit.");
+            Console.WriteLine("❌ Failed to resolve scenario within time limit.");
+        }
+
+        ShowFinalSummary();
+    }
+
+    private void ShowFinalSummary()
+    {
+        // Show life support maintenance summary
+        var lifeSupportTasks = Scenario.GetLifeSupportTasks();
+        if (lifeSupportTasks.Any())
+        {
+            Console.WriteLine("\nLife Support Maintenance Summary:");
+            Console.WriteLine($"Maintenance Tasks Completed: {Scenario.CompletedLifeSupportTaskCount()}/{lifeSupportTasks.Count}");
+            Console.WriteLine($"Completion Rate: {Scenario.LifeSupportTaskCompletionRate() * 100:F1}%");
+            Console.WriteLine($"Final Life Support: {Scenario.LifeSupport}");
+            Console.WriteLine($"Final Decay Rate: {Scenario.ActualLifeSupportDecay}/step (Base: {Scenario.LifeSupportDecay})");
+        }
+
+        // Show final task status
+        Console.WriteLine("\nFinal Task Status:");
+        foreach (var task in Scenario.Tasks)
+        {
+            var status = task.IsCompleted ? "✅" : "❌";
+            Console.WriteLine($"{status} {task.Name} ({task.Type}): {task.Progress}/{task.RequiredProgress}");
+        }
+
+        // Show detailed event summary
+        if (Scenario.DetailedEventLog.Any())
+        {
+            Console.WriteLine("\nEvent Summary:");
+            foreach (var eventEntry in Scenario.DetailedEventLog)
+            {
+                Console.WriteLine($"• {eventEntry.TimeStamp} - {eventEntry.EventName}");
+                Console.WriteLine($"  {eventEntry.EventDescription}");
+                if (eventEntry.Effects.Any())
+                {
+                    Console.WriteLine("  Effects:");
+                    foreach (var effect in eventEntry.Effects)
+                    {
+                        Console.WriteLine($"    - {effect}");
+                    }
+                }
+                Console.WriteLine();
+            }
+        }
+    }
+
+    public void Stop()
+    {
+        IsRunning = false;
+        Console.WriteLine("Simulation stopped by user.");
+    }
+
+    // Legacy method for backward compatibility
+    public void Run()
+    {
+        Start();
+        while (ExecuteStep())
+        {
+            // Continue stepping until completion
         }
     }
 }

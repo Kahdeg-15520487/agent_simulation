@@ -54,7 +54,7 @@ public class LLMAgent : Agent
         catch (Exception ex)
         {
             // Fallback to base implementation if LLM fails
-            Logs.Add($"LLM error for {Name}: {ex.Message}");
+            Console.WriteLine($"LLM error for {Name}: {ex.Message}");
             return GenerateThought(scenario);
         }
     }

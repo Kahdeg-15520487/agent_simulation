@@ -14,7 +14,6 @@ using System.Windows.Threading;
 using AgentSimulation.Core;
 using AgentSimulation.Scenarios;
 using AgentSimulation.Agents;
-using AgentSimulation.Tasks;
 
 namespace agent_simulation_ui;
 
@@ -147,8 +146,8 @@ public partial class MainWindow : Window
             var teamSize = (int)TeamSizeSlider.Value;
             var team = CreateTeam(teamSize);
 
-            // Setup console output capture (removed - using simulation logs instead)
-            // SetupConsoleCapture();
+            // Setup console output capture
+            SetupConsoleCapture();
 
             // Create and start simulation
             _currentSimulation = new Simulation(selectedScenario, team, "http://localhost:8080");
@@ -240,8 +239,8 @@ public partial class MainWindow : Window
 
         try
         {
-            // Update simulation output from simulation logs
-            var output = string.Join("\n", _currentSimulation.Logs);
+            // Update simulation output
+            var output = _simulationOutputCapture?.ToString() ?? "";
             if (!string.IsNullOrEmpty(output))
             {
                 // Limit output size to prevent memory issues
@@ -251,6 +250,10 @@ public partial class MainWindow : Window
                     if (lines.Length > 200) // Keep last 200 lines
                     {
                         output = string.Join('\n', lines.Skip(lines.Length - 200));
+                        
+                        // Clear the capture and restart with limited output
+                        _simulationOutputCapture?.GetStringBuilder().Clear();
+                        _simulationOutputCapture?.Write(output);
                     }
                 }
                 
@@ -285,8 +288,8 @@ public partial class MainWindow : Window
         LifeSupportText.Text = $"{lifeSupportPercent:F0}%";
         
         // Calculate defense based on completed defense tasks
-        var defenseTasks = _currentSimulation.Scenario.Tasks.Where(t => t.Type == TaskType.Combat).ToList();
-        var completedDefense = defenseTasks.Where(t => t.IsCompleted).Count();
+        var defenseTasks = _currentSimulation.Scenario.Tasks.Where(t => t.Type.Contains("Defense")).ToList();
+        var completedDefense = defenseTasks.Count(t => t.IsCompleted);
         var defensePercent = defenseTasks.Count > 0 ? (completedDefense * 100) / defenseTasks.Count : 0;
         DefenseText.Text = $"{defensePercent}%";
         
@@ -344,8 +347,11 @@ public partial class MainWindow : Window
         _uiUpdateTimer?.Stop();
         _simulationStepTimer?.Stop();
         
-        // Stop simulation (just set to null since we don't have a Stop method)
+        // Stop simulation
+        _currentSimulation?.Stop();
         _currentSimulation = null;
+        
+        RestoreConsoleOutput();
         
         // Reset UI state
         StartSimulationButton.IsEnabled = true;
