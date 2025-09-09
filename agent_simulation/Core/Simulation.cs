@@ -2,14 +2,17 @@ using System;
 using System.Collections.Generic;
 using AgentSimulation.Agents;
 using AgentSimulation.Scenarios;
+using AgentSimulation.Events;
+using AgentSimulation.Tasks;
 
 namespace AgentSimulation.Core;
 
-public class Simulation
+public class Simulation : SimulationEventPublisher
 {
     public List<Agent> Agents { get; set; } = new();
 
     private TextWriter logWriter;
+    public bool IsPaused { get; private set; } = false;
 
     public Scenario Scenario { get; set; }
     public int CurrentStep { get; private set; } = 0;
@@ -31,6 +34,10 @@ public class Simulation
         IsRunning = true;
         IsCompleted = false;
         CurrentStep = 0;
+
+        // Fire simulation started event
+        OnSimulationStarted(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, "Simulation started"));
+        OnLogMessageGenerated(new SimulationLogEventArgs($"=== {Scenario.Name} ==="));
 
         logWriter.WriteLine($"=== {Scenario.Name} ===");
         logWriter.WriteLine(Scenario.Description);
@@ -57,9 +64,14 @@ public class Simulation
 
     public bool ExecuteStep()
     {
-        if (!IsRunning || IsCompleted) return false;
+        if (!IsRunning || IsCompleted || IsPaused) return false;
 
         CurrentStep++;
+        
+        // Fire step started event
+        OnStepStarted(new SimulationStepEventArgs(CurrentStep, MaxSteps));
+        OnLogMessageGenerated(new SimulationLogEventArgs($"Step {CurrentStep} - {Scenario.Time}"));
+        
         logWriter.WriteLine($"Step {CurrentStep} - {Scenario.Time}");
 
         // Check if mission is successful before continuing
@@ -74,8 +86,15 @@ public class Simulation
         foreach (var agent in Agents)
         {
             logWriter.WriteLine($"\n{agent.Name}:");
-            logWriter.WriteLine(agent.Think(Scenario));
-            logWriter.WriteLine(agent.Act(Scenario));
+            
+            string thought = agent.Think(Scenario);
+            logWriter.WriteLine(thought);
+            
+            string action = agent.Act(Scenario);
+            logWriter.WriteLine(action);
+
+            // Fire agent action event
+            OnAgentPerformedAction(new AgentActionEventArgs(agent, action));
 
             // Add spacing after human player turn for better readability
             if (agent is HumanAgent)
@@ -84,7 +103,24 @@ public class Simulation
             }
         }
 
+        // Check for task progress updates before scenario update
+        var tasksBefore = Scenario.Tasks.ToDictionary(t => t.Name, t => t.Progress);
+
         Scenario.Update();
+
+        // Check for task progress changes and fire events
+        foreach (var task in Scenario.Tasks)
+        {
+            if (tasksBefore.TryGetValue(task.Name, out int previousProgress) && previousProgress != task.Progress)
+            {
+                OnTaskProgressUpdated(new TaskStatusEventArgs(task, previousProgress, task.Progress));
+                
+                if (task.IsCompleted && previousProgress < task.RequiredProgress)
+                {
+                    OnTaskCompleted(new TaskCompletedEventArgs(task));
+                }
+            }
+        }
 
         // Show life support status with maintenance task information
         var decayDisplay = Scenario.ActualLifeSupportDecay != Scenario.LifeSupportDecay
@@ -121,6 +157,10 @@ public class Simulation
         }
 
         logWriter.WriteLine();
+        
+        // Fire step completed event
+        OnStepCompleted(new SimulationStepEventArgs(CurrentStep, MaxSteps));
+        
         return true;
     }
 
@@ -128,6 +168,13 @@ public class Simulation
     {
         IsRunning = false;
         IsCompleted = true;
+
+        // Fire simulation completed event
+        string statusMessage = Scenario.IsSuccessful ? "Scenario resolved successfully!" :
+                              Scenario.HasFailed ? "Mission failed - Life support critical!" :
+                              "Failed to resolve scenario within time limit.";
+        
+        OnSimulationCompleted(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, statusMessage));
 
         logWriter.WriteLine("=== SIMULATION END ===");
         if (Scenario.IsSuccessful)
@@ -191,6 +238,71 @@ public class Simulation
     public void Stop()
     {
         IsRunning = false;
+        OnSimulationStopped(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, "Simulation stopped by user"));
+        OnLogMessageGenerated(new SimulationLogEventArgs("Simulation stopped by user."));
         logWriter.WriteLine("Simulation stopped by user.");
+    }
+
+    public void Pause()
+    {
+        if (!IsRunning || IsPaused) return;
+        IsPaused = true;
+        OnSimulationPaused(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, "Simulation paused"));
+        OnLogMessageGenerated(new SimulationLogEventArgs("Simulation paused."));
+    }
+
+    public void Resume()
+    {
+        if (!IsRunning || !IsPaused) return;
+        IsPaused = false;
+        OnSimulationResumed(new SimulationStateEventArgs(IsRunning, IsCompleted, IsPaused, "Simulation resumed"));
+        OnLogMessageGenerated(new SimulationLogEventArgs("Simulation resumed."));
+    }
+
+    /// <summary>
+    /// Request user input for a human agent
+    /// </summary>
+    public async Task<int> RequestUserInputAsync(Agent agent, string prompt, List<string> options)
+    {
+        var args = new UserInputRequestedEventArgs(agent, prompt, options);
+        OnUserInputRequested(args);
+        return await args.ResponseTask.Task;
+    }
+
+    /// <summary>
+    /// Get current task statuses for UI display
+    /// </summary>
+    public List<AgentSimulation.Events.TaskStatus> GetTaskStatuses()
+    {
+        return Scenario.Tasks.Select(task => new AgentSimulation.Events.TaskStatus
+        {
+            Name = task.Name,
+            Description = task.Description,
+            Progress = task.Progress,
+            RequiredProgress = task.RequiredProgress,
+            IsCompleted = task.IsCompleted,
+            Type = task.Type,
+            ProgressPercentage = task.RequiredProgress > 0 ? (double)task.Progress / task.RequiredProgress * 100 : 0
+        }).ToList();
+    }
+
+    /// <summary>
+    /// Get current simulation status for UI display
+    /// </summary>
+    public SimulationStatus GetSimulationStatus()
+    {
+        return new SimulationStatus
+        {
+            CurrentStep = CurrentStep,
+            MaxSteps = MaxSteps,
+            IsRunning = IsRunning,
+            IsCompleted = IsCompleted,
+            IsPaused = IsPaused,
+            LifeSupport = Scenario.LifeSupport,
+            LifeSupportDecay = Scenario.ActualLifeSupportDecay,
+            IsSuccessful = Scenario.IsSuccessful,
+            HasFailed = Scenario.HasFailed,
+            ProgressPercentage = MaxSteps > 0 ? (double)CurrentStep / MaxSteps * 100 : 0
+        };
     }
 }
