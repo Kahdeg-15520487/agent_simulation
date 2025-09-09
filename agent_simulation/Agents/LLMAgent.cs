@@ -23,11 +23,12 @@ public class LLMAgent : Agent
         _endpoint = endpoint;
     }
 
-    public override void Think(Scenario scenario)
+    public override string Think(Scenario scenario)
     {
         // Generate thought using LLM
         CurrentThought = GenerateThoughtWithLLM(scenario).Result; // Synchronous for simplicity
         Memory.Add(CurrentThought);
+        return CurrentThought;
     }
 
     private async Task<string> GenerateThoughtWithLLM(Scenario scenario)
@@ -81,11 +82,5 @@ As a {Personality} agent, what is your current thought about the situation? Keep
 ";
 
         return prompt.Trim();
-    }
-
-    // Need to make GenerateThought protected or internal to access from subclass
-    protected new string GenerateThought(Scenario scenario)
-    {
-        return base.GenerateThought(scenario);
     }
 }

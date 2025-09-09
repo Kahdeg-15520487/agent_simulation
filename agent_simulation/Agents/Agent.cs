@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using AgentSimulation.Scenarios;
 
 namespace AgentSimulation.Agents;
@@ -19,11 +20,12 @@ public class Agent
         CurrentThought = "";
     }
 
-    public virtual void Think(Scenario scenario)
+    public virtual string Think(Scenario scenario)
     {
         // Generate thought based on personality and scenario
         CurrentThought = GenerateThought(scenario);
         Memory.Add(CurrentThought);
+        return CurrentThought;
     }
 
     protected string GenerateThought(Scenario scenario)
@@ -54,41 +56,44 @@ public class Agent
         return thoughts[random.Next(thoughts.Count)];
     }
 
-    public virtual void Act(Scenario scenario)
+    public virtual string Act(Scenario scenario)
     {
         // Choose a random incomplete task to work on
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
+        var logs = new StringBuilder();
         if (incompleteTasks.Any())
         {
             var random = new Random();
             var task = incompleteTasks[random.Next(incompleteTasks.Count)];
-            
+
             // Base progress amount
             var baseProgress = random.Next(5, 15);
-            
+
             // Apply colony stat bonuses
             var bonusProgress = scenario.ColonyStats.CalculateTaskProgressBonus(task.Type);
             var totalProgress = baseProgress + bonusProgress;
-            
+
             var oldProgress = task.Progress;
             task.UpdateProgress(totalProgress);
-            
+
             // Report progress made
-            Console.WriteLine($"{Name} worked on {task.Name}: {CurrentThought}");
+            logs.AppendLine($"{Name} worked on {task.Name}: {CurrentThought}");
             if (bonusProgress > 0)
             {
-                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
+                logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{baseProgress}+{bonusProgress} bonus)");
             }
             else
             {
-                Console.WriteLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
+                logs.AppendLine($"  Progress: {oldProgress} → {task.Progress}/{task.RequiredProgress} (+{totalProgress})");
             }
-            
+
             // Report if task was completed
             if (task.IsCompleted && oldProgress < task.RequiredProgress)
             {
-                Console.WriteLine($"  ✅ {task.Name} COMPLETED!");
+                logs.AppendLine($"  ✅ {task.Name} COMPLETED!");
             }
         }
+
+        return logs.ToString();
     }
 }
