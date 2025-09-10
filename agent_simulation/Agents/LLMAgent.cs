@@ -38,7 +38,7 @@ public class LLMAgent : Agent
         {
             selectedTaskId = null;
         }
-        else 
+        else
         {
             selectedTaskId = Guid.Parse(llmThought.task_id);
         }
@@ -82,7 +82,7 @@ public class LLMAgent : Agent
 
         var tasksText = string.Join("\n", scenario.Tasks
             .OrderByDescending(t => t.IsImportant)
-            .Select(t => $"{t.Id} | {t.Name} | {(t.IsImportant ? " [IMPORTANT]" : "")} {t.Description} | {t.Progress}/{t.RequiredProgress}({t.Progress*100/t.RequiredProgress}%)"));
+            .Select(t => $"{t.Id} | {t.Name} | {(t.IsImportant ? " [IMPORTANT]" : "")} {t.Description} | {t.Progress}/{t.RequiredProgress}({t.Progress * 100 / t.RequiredProgress}%)"));
 
         var prompt = $@"
 You are an agent named {Name} with a {Personality} personality in a simulation.
@@ -111,32 +111,36 @@ Respond just this json with the below schema, do not use any format or backtick:
     public override string Act(Scenario scenario, Guid? taskId = null)
     {
         var logs = new StringBuilder();
-        
+
         // Check if agent needs to rest or eat and handle automatically
         if (NeedsRest() && !IsResting)
         {
             TakeRest();
             logs.AppendLine($"{Name}: Taking time to rest and recover stamina.");
+            // Still consume some resources even while resting
+            ConsumeResources();
             return logs.ToString();
         }
-        
+
         if (NeedsFood() && !IsEating)
         {
             Eat();
             logs.AppendLine($"{Name}: Taking time to eat and restore energy.");
+            // Still consume some resources even while eating
+            ConsumeResources();
             return logs.ToString();
         }
-        
+
         // Finish resting/eating if we were doing that
         if (IsResting || IsEating)
         {
             FinishRestingOrEating();
             logs.AppendLine($"{Name}: Finished recovering and ready to work.");
         }
-        
+
         // Consume resources for working
         ConsumeResources();
-        
+
         var baseResult = base.Act(scenario, selectedTaskId ?? taskId);
         return logs.ToString() + baseResult;
     }

@@ -21,7 +21,6 @@ namespace AgentSimulation.UI
         // UI Controls
         private Button btnStart;
         private Button btnStop;
-        private Button btnPause;
         private Button btnStep;
         private ProgressBar progressBarSimulation;
         private ProgressBar progressBarLifeSupport;
@@ -59,9 +58,8 @@ namespace AgentSimulation.UI
             // Control buttons
             btnStart = new Button { Text = "Start Simulation", Location = new Point(10, 10), Size = new Size(120, 30) };
             btnStop = new Button { Text = "Stop", Location = new Point(140, 10), Size = new Size(80, 30), Enabled = false };
-            btnPause = new Button { Text = "Pause", Location = new Point(230, 10), Size = new Size(80, 30), Enabled = false };
-            btnStep = new Button { Text = "Step", Location = new Point(320, 10), Size = new Size(80, 30), Enabled = false };
-            chkAutoStep = new CheckBox { Text = "Auto Step (1s)", Location = new Point(410, 15), Size = new Size(120, 20) };
+            btnStep = new Button { Text = "Step", Location = new Point(230, 10), Size = new Size(80, 30), Enabled = false };
+            chkAutoStep = new CheckBox { Text = "Auto Step (1s)", Location = new Point(320, 15), Size = new Size(120, 20) };
 
             // Status labels
             lblSimulationStatus = new Label { Text = "Ready", Location = new Point(10, 50), Size = new Size(200, 20), ForeColor = Color.Blue };
@@ -69,8 +67,8 @@ namespace AgentSimulation.UI
             lblLifeSupportInfo = new Label { Text = "Life Support: 100", Location = new Point(330, 50), Size = new Size(150, 20) };
 
             // Progress bars
-            progressBarSimulation = new ProgressBar { Location = new Point(10, 80), Size = new Size(300, 20) };
-            progressBarLifeSupport = new ProgressBar { Location = new Point(320, 80), Size = new Size(200, 20), Maximum = 100 };
+            progressBarSimulation = new ProgressBar { Location = new Point(10, 80), Size = new Size(280, 20) };
+            progressBarLifeSupport = new ProgressBar { Location = new Point(300, 80), Size = new Size(200, 20), Maximum = 100 };
 
             // Tasks list view
             listViewTasks = new ListView
@@ -168,7 +166,7 @@ namespace AgentSimulation.UI
 
             // Add all controls to form
             this.Controls.AddRange(new Control[] {
-                btnStart, btnStop, btnPause, btnStep, chkAutoStep,
+                btnStart, btnStop, btnStep, chkAutoStep,
                 lblSimulationStatus, lblStepInfo, lblLifeSupportInfo,
                 progressBarSimulation, progressBarLifeSupport,
                 listViewTasks, listViewEffects, listViewAgents, richTextBoxLog, pnlUserInput
@@ -181,7 +179,6 @@ namespace AgentSimulation.UI
         {
             btnStart.Click += BtnStart_Click;
             btnStop.Click += BtnStop_Click;
-            btnPause.Click += BtnPause_Click;
             btnStep.Click += BtnStep_Click;
             btnSubmitUserInput.Click += BtnSubmitUserInput_Click;
             chkAutoStep.CheckedChanged += ChkAutoStep_CheckedChanged;
@@ -235,7 +232,6 @@ namespace AgentSimulation.UI
 
                 btnStart.Enabled = false;
                 btnStop.Enabled = true;
-                btnPause.Enabled = true;
                 btnStep.Enabled = true;
 
                 await Task.Run(() => simulation.Start(), cancellationTokenSource.Token);
@@ -252,25 +248,8 @@ namespace AgentSimulation.UI
             isStepInProgress = false;
             btnStart.Enabled = true;
             btnStop.Enabled = false;
-            btnPause.Enabled = false;
             btnStep.Enabled = false;
             chkAutoStep.Checked = false;
-        }
-
-        private void BtnPause_Click(object sender, EventArgs e)
-        {
-            if (simulation?.IsPaused == true)
-            {
-                simulation.Resume();
-                btnPause.Text = "Pause";
-                if (chkAutoStep.Checked) stepTimer?.Start();
-            }
-            else
-            {
-                simulation?.Pause();
-                btnPause.Text = "Resume";
-                stepTimer?.Stop();
-            }
         }
 
         private async void BtnStep_Click(object sender, EventArgs e)
@@ -420,6 +399,7 @@ namespace AgentSimulation.UI
             this.Invoke(() =>
             {
                 UpdateTasksList();
+                UpdateAgentsList();
                 UpdateLifeSupportDisplay();
                 UpdateEffectsList();
             });
@@ -506,7 +486,6 @@ namespace AgentSimulation.UI
                 isStepInProgress = false;
                 btnStart.Enabled = true;
                 btnStop.Enabled = false;
-                btnPause.Enabled = false;
                 btnStep.Enabled = false;
                 chkAutoStep.Checked = false;
                 stepTimer?.Stop();
@@ -748,7 +727,9 @@ namespace AgentSimulation.UI
         private Color GetMessageColor(string message)
         {
             // Determine color based on message content and prefixes
-            if (message.Contains("🔍") || message.Contains("💭") || message.Contains("thinks:") || message.Contains("Analyzing"))
+            if (message.Contains("�") || message.Contains("EVENT:") || message.Contains("⚡ EVENT"))
+                return Color.Orange;
+            if (message.Contains("�🔍") || message.Contains("💭") || message.Contains("thinks:") || message.Contains("Analyzing"))
                 return Color.Cyan;
             if (message.Contains("🤖") || message.Contains("⚡") || message.Contains("🔧") || message.Contains("performs:") || message.Contains("works on"))
                 return Color.Yellow;

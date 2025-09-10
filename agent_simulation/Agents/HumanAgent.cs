@@ -23,7 +23,36 @@ public class HumanAgent : Agent
     {
         var logs = new StringBuilder();
         
-        // Check if agent needs to rest or eat first
+        // Handle ongoing rest/eat actions first (similar to base class)
+        if (IsResting && RestingStepsRemaining > 0)
+        {
+            RestingStepsRemaining--;
+            TakeRest(); // Continue recovering
+            logs.AppendLine($"{Name}: Continuing to rest... ({RestingStepsRemaining} steps remaining)");
+            
+            if (RestingStepsRemaining <= 0)
+            {
+                FinishRestingOrEating();
+                logs.AppendLine($"{Name}: Finished resting and ready to work!");
+            }
+            return logs.ToString();
+        }
+        
+        if (IsEating && EatingStepsRemaining > 0)
+        {
+            EatingStepsRemaining--;
+            Eat(); // Continue recovering
+            logs.AppendLine($"{Name}: Continuing to eat... ({EatingStepsRemaining} steps remaining)");
+            
+            if (EatingStepsRemaining <= 0)
+            {
+                FinishRestingOrEating();
+                logs.AppendLine($"{Name}: Finished eating and ready to work!");
+            }
+            return logs.ToString();
+        }
+        
+        // Check if agent needs to rest or eat
         if (NeedsRest() && !IsResting)
         {
             logs.AppendLine($"{Name}: I'm getting tired/exhausted. Should I rest or continue working?");
@@ -33,9 +62,6 @@ public class HumanAgent : Agent
         {
             logs.AppendLine($"{Name}: I'm getting hungry. Should I eat or continue working?");
         }
-        
-        // Consume resources for any action
-        ConsumeResources();
         
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (!incompleteTasks.Any())
@@ -49,6 +75,38 @@ public class HumanAgent : Agent
         if (chosenTask == null)
         {
             logs.AppendLine($"{Name} decides to skip this turn.");
+            return logs.ToString();
+        }
+
+        // Handle special tasks (eat/rest)
+        if (chosenTask.Id == Guid.Empty) // Rest task
+        {
+            if (!IsResting && RestingStepsRemaining == 0)
+            {
+                IsResting = true;
+                RestingStepsRemaining = REST_DURATION;
+                TakeRest();
+                logs.AppendLine($"{Name}: Starting to rest for {REST_DURATION} steps.");
+            }
+            else
+            {
+                logs.AppendLine($"{Name}: Already resting or just finished resting.");
+            }
+            return logs.ToString();
+        }
+        else if (chosenTask.Id == new Guid("11111111-1111-1111-1111-111111111111")) // Eat task
+        {
+            if (!IsEating && EatingStepsRemaining == 0)
+            {
+                IsEating = true;
+                EatingStepsRemaining = EAT_DURATION;
+                Eat();
+                logs.AppendLine($"{Name}: Starting to eat for {EAT_DURATION} steps.");
+            }
+            else
+            {
+                logs.AppendLine($"{Name}: Already eating or just finished eating.");
+            }
             return logs.ToString();
         }
 
@@ -68,6 +126,8 @@ public class HumanAgent : Agent
             .ToList();
 
         var options = new List<string>();
+        
+        // Add regular tasks
         for (int i = 0; i < orderedTasks.Count; i++)
         {
             var task = orderedTasks[i];
@@ -76,22 +136,39 @@ public class HumanAgent : Agent
             var importantFlag = task.IsImportant ? "⭐ " : "";
             options.Add($"{statusIcon} {importantFlag}{task.Name} [{task.Type}] - {completionPercent:F1}% complete");
         }
+        
+        // Add personal care options
+        options.Add("🍽️ Take time to eat and restore energy");
+        options.Add("😴 Take time to rest and recover stamina");
         options.Add("❌ Skip this turn");
 
         string prompt = $"Choose a task to work on:\n\n📊 Current situation:\n" +
                        $"🫁 Life Support: {this.Simulation.GetSimulationStatus().LifeSupport}\n" +
-                       $"⏱️ Step: {this.Simulation.GetSimulationStatus().CurrentStep}/{this.Simulation.GetSimulationStatus().MaxSteps}";
+                       $"⏱️ Step: {this.Simulation.GetSimulationStatus().CurrentStep}/{this.Simulation.GetSimulationStatus().MaxSteps}\n" +
+                       $"💪 Your Stamina: {Stamina}% | 🍽️ Food: {Food}% | 😴 Rest: {Rest}%";
 
         int result = await this.Simulation.RequestUserInputAsync(this, prompt, options);
 
-        // If user selected "Skip this turn" (last option), return null
-        if (result == options.Count - 1)
+        // Check what the user selected
+        if (result == options.Count - 1) // Skip this turn (last option)
         {
             return null;
         }
-
-        // Return the selected task directly
-        return orderedTasks[result];
+        else if (result == options.Count - 2) // Rest option (second to last)
+        {
+            // Return a special "rest" task indicator
+            return new Tasks.SimulationTask("Rest", "Taking time to rest and recover", 1, Tasks.TaskType.Other) { Id = Guid.Empty };
+        }
+        else if (result == options.Count - 3) // Eat option (third to last)
+        {
+            // Return a special "eat" task indicator  
+            return new Tasks.SimulationTask("Eat", "Taking time to eat and restore energy", 1, Tasks.TaskType.Other) { Id = new Guid("11111111-1111-1111-1111-111111111111") };
+        }
+        else
+        {
+            // Return the selected regular task
+            return orderedTasks[result];
+        }
     }
 
     private string GetTaskStatusIcon(Tasks.SimulationTask task)

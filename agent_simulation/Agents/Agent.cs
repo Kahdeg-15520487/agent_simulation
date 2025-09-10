@@ -22,11 +22,17 @@ public class Agent
     public int Rest { get; set; } = 100; // 0-100, affects stamina recovery
     public bool IsResting { get; set; } = false; // Whether agent is currently resting
     public bool IsEating { get; set; } = false; // Whether agent is currently eating
+    public int RestingStepsRemaining { get; set; } = 0; // Steps remaining for rest action
+    public int EatingStepsRemaining { get; set; } = 0; // Steps remaining for eat action
     
     // Status thresholds
     public const int EXHAUSTED_THRESHOLD = 20;
     public const int HUNGRY_THRESHOLD = 30;
     public const int TIRED_THRESHOLD = 25;
+    
+    // Action durations (in simulation steps)
+    public const int REST_DURATION = 3; // Rest takes 3 steps
+    public const int EAT_DURATION = 2;  // Eating takes 2 steps
 
     public Agent(string name, string personality)
     {
@@ -38,6 +44,8 @@ public class Agent
         Rest = 100;
         IsResting = false;
         IsEating = false;
+        RestingStepsRemaining = 0;
+        EatingStepsRemaining = 0;
     }
 
     public virtual string Think(Scenario scenario)
@@ -79,8 +87,60 @@ public class Agent
     // GUID-based Act method for safer task referencing
     public virtual string Act(Scenario scenario, Guid? taskId = null)
     {
-        var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         var logs = new StringBuilder();
+        
+        // Handle ongoing rest/eat actions first
+        if (IsResting && RestingStepsRemaining > 0)
+        {
+            RestingStepsRemaining--;
+            TakeRest(); // Continue recovering
+            logs.AppendLine($"{Name}: Continuing to rest... ({RestingStepsRemaining} steps remaining)");
+            
+            if (RestingStepsRemaining <= 0)
+            {
+                FinishRestingOrEating();
+                logs.AppendLine($"{Name}: Finished resting and ready to work!");
+            }
+            return logs.ToString();
+        }
+        
+        if (IsEating && EatingStepsRemaining > 0)
+        {
+            EatingStepsRemaining--;
+            Eat(); // Continue recovering
+            logs.AppendLine($"{Name}: Continuing to eat... ({EatingStepsRemaining} steps remaining)");
+            
+            if (EatingStepsRemaining <= 0)
+            {
+                FinishRestingOrEating();
+                logs.AppendLine($"{Name}: Finished eating and ready to work!");
+            }
+            return logs.ToString();
+        }
+        
+        // Check if agent needs to start rest/eat actions
+        if (NeedsRest() && !IsResting && RestingStepsRemaining == 0)
+        {
+            IsResting = true;
+            RestingStepsRemaining = REST_DURATION;
+            TakeRest();
+            logs.AppendLine($"{Name}: Starting to rest for {REST_DURATION} steps.");
+            return logs.ToString();
+        }
+
+        if (NeedsFood() && !IsEating && EatingStepsRemaining == 0)
+        {
+            IsEating = true;
+            EatingStepsRemaining = EAT_DURATION;
+            Eat();
+            logs.AppendLine($"{Name}: Starting to eat for {EAT_DURATION} steps.");
+            return logs.ToString();
+        }
+        
+        // Agent is available for tasks - consume resources for task work
+        ConsumeResources();
+        
+        var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (incompleteTasks.Any())
         {
             var random = new Random();
@@ -97,7 +157,8 @@ public class Agent
                 task = incompleteTasks[random.Next(incompleteTasks.Count)];
             }
 
-            return ActOnTask(scenario, task, logs);
+            var result = ActOnTask(scenario, task, new StringBuilder());
+            return logs.ToString() + result;
         }
         
         logs.AppendLine($"{Name}: All tasks are completed!");
@@ -157,30 +218,30 @@ public class Agent
 
     public virtual void TakeRest()
     {
-        if (!IsResting)
+        // Update thought if starting to rest
+        if (IsResting && RestingStepsRemaining == REST_DURATION)
         {
-            IsResting = true;
             CurrentThought = "Taking a rest to recover stamina and rest...";
         }
         
-        // Recover when resting
-        Stamina = Math.Min(100, Stamina + 15);
-        Rest = Math.Min(100, Rest + 20);
-        Food = Math.Max(0, Food - 1);  // Still lose a little food while resting
+        // Recover when resting - generous recovery since no consumption penalty
+        Stamina = Math.Min(100, Stamina + 15);  // Good stamina recovery
+        Rest = Math.Min(100, Rest + 20);        // Excellent rest recovery
+        Food = Math.Max(0, Food - 1);           // Minimal food loss while resting
     }
 
     public virtual void Eat()
     {
-        if (!IsEating)
+        // Update thought if starting to eat
+        if (IsEating && EatingStepsRemaining == EAT_DURATION)
         {
-            IsEating = true;
             CurrentThought = "Eating to restore food and energy...";
         }
         
-        // Recover when eating
-        Food = Math.Min(100, Food + 25);
-        Stamina = Math.Min(100, Stamina + 5);  // Small stamina boost from eating
-        Rest = Math.Max(0, Rest - 1);  // Still lose a little rest while eating
+        // Recover when eating - generous recovery since no consumption penalty  
+        Food = Math.Min(100, Food + 20);        // Excellent food recovery
+        Stamina = Math.Min(100, Stamina + 5);   // Small stamina boost from eating
+        Rest = Math.Max(0, Rest - 1);           // Minimal rest loss while eating
     }
 
     public virtual bool NeedsRest()
@@ -195,6 +256,10 @@ public class Agent
 
     public virtual bool CanWork()
     {
+        // Agent cannot work if currently in the middle of rest/eat actions
+        if (IsResting && RestingStepsRemaining > 0) return false;
+        if (IsEating && EatingStepsRemaining > 0) return false;
+        
         return Stamina > 0 && Food > 0 && Rest > 0;
     }
 
@@ -202,5 +267,7 @@ public class Agent
     {
         IsResting = false;
         IsEating = false;
+        RestingStepsRemaining = 0;
+        EatingStepsRemaining = 0;
     }
 }
