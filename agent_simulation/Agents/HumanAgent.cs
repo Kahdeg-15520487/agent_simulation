@@ -22,6 +22,21 @@ public class HumanAgent : Agent
     public override string Act(Scenario scenario, Guid? taskId = null)
     {
         var logs = new StringBuilder();
+        
+        // Check if agent needs to rest or eat first
+        if (NeedsRest() && !IsResting)
+        {
+            logs.AppendLine($"{Name}: I'm getting tired/exhausted. Should I rest or continue working?");
+        }
+        
+        if (NeedsFood() && !IsEating)
+        {
+            logs.AppendLine($"{Name}: I'm getting hungry. Should I eat or continue working?");
+        }
+        
+        // Consume resources for any action
+        ConsumeResources();
+        
         var incompleteTasks = scenario.Tasks.Where(t => !t.IsCompleted).ToList();
         if (!incompleteTasks.Any())
         {
@@ -38,7 +53,8 @@ public class HumanAgent : Agent
         }
 
         // Use the GUID-based Act method with the chosen task
-        return base.Act(scenario, chosenTask.Id);
+        var baseResult = base.Act(scenario, chosenTask.Id);
+        return logs.ToString() + baseResult;
     }
 
     private async Task<Tasks.SimulationTask?> GetUserChoiceAsync(List<Tasks.SimulationTask> incompleteTasks)

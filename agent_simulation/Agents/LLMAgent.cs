@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AgentSimulation.Scenarios;
@@ -100,7 +101,7 @@ As a {Personality} agent, what is your current thought about the situation and w
 Respond just this json with the below schema, do not use any format or backtick:
 {{
     ""thought"": ""Your thought here"",
-    ""task_id"": ""task's guid"" taken from the list above, or """" for skipping
+    ""task_id"": ""task's guid taken from the list above""
 }}
 ";
 
@@ -109,7 +110,35 @@ Respond just this json with the below schema, do not use any format or backtick:
 
     public override string Act(Scenario scenario, Guid? taskId = null)
     {
-        return base.Act(scenario, selectedTaskId ?? taskId);
+        var logs = new StringBuilder();
+        
+        // Check if agent needs to rest or eat and handle automatically
+        if (NeedsRest() && !IsResting)
+        {
+            TakeRest();
+            logs.AppendLine($"{Name}: Taking time to rest and recover stamina.");
+            return logs.ToString();
+        }
+        
+        if (NeedsFood() && !IsEating)
+        {
+            Eat();
+            logs.AppendLine($"{Name}: Taking time to eat and restore energy.");
+            return logs.ToString();
+        }
+        
+        // Finish resting/eating if we were doing that
+        if (IsResting || IsEating)
+        {
+            FinishRestingOrEating();
+            logs.AppendLine($"{Name}: Finished recovering and ready to work.");
+        }
+        
+        // Consume resources for working
+        ConsumeResources();
+        
+        var baseResult = base.Act(scenario, selectedTaskId ?? taskId);
+        return logs.ToString() + baseResult;
     }
 
     class LLMThought

@@ -1,7 +1,13 @@
+using AgentSimulation.Agents;
 using AgentSimulation.Core;
 using AgentSimulation.Scenarios;
 using AgentSimulation.Events;
+using System;
+using System.Drawing;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace AgentSimulation.UI
 {
@@ -21,6 +27,7 @@ namespace AgentSimulation.UI
         private ProgressBar progressBarLifeSupport;
         private RichTextBox richTextBoxLog;
         private ListView listViewTasks;
+        private ListView listViewAgents; // New agent status display
         private Label lblSimulationStatus;
         private Label lblStepInfo;
         private Label lblLifeSupportInfo;
@@ -94,6 +101,22 @@ namespace AgentSimulation.UI
             listViewEffects.Columns.Add("Target", 120);
             listViewEffects.Columns.Add("Duration", 80);
 
+            // Agent status list view
+            listViewAgents = new ListView
+            {
+                Location = new Point(520, 10),
+                Size = new Size(660, 90),
+                View = View.Details,
+                FullRowSelect = true,
+                GridLines = true
+            };
+            listViewAgents.Columns.Add("Agent", 120);
+            listViewAgents.Columns.Add("Stamina", 70);
+            listViewAgents.Columns.Add("Food", 70);
+            listViewAgents.Columns.Add("Rest", 70);
+            listViewAgents.Columns.Add("Status", 120);
+            listViewAgents.Columns.Add("Activity", 150);
+
             // Log rich text box for colorful output
             richTextBoxLog = new RichTextBox
             {
@@ -148,7 +171,7 @@ namespace AgentSimulation.UI
                 btnStart, btnStop, btnPause, btnStep, chkAutoStep,
                 lblSimulationStatus, lblStepInfo, lblLifeSupportInfo,
                 progressBarSimulation, progressBarLifeSupport,
-                listViewTasks, listViewEffects, richTextBoxLog, pnlUserInput
+                listViewTasks, listViewEffects, listViewAgents, richTextBoxLog, pnlUserInput
             });
 
             this.ResumeLayout();
@@ -584,6 +607,49 @@ namespace AgentSimulation.UI
             }
         }
 
+        private void UpdateAgentsList()
+        {
+            if (simulation == null) return;
+
+            listViewAgents.Items.Clear();
+
+            foreach (var agent in simulation.Agents)
+            {
+                var item = new ListViewItem(agent.Name);
+                item.SubItems.Add($"{agent.Stamina}%");
+                item.SubItems.Add($"{agent.Food}%");
+                item.SubItems.Add($"{agent.Rest}%");
+                
+                // Status indicator
+                string status = "Healthy";
+                if (agent.IsResting)
+                    status = "Resting";
+                else if (agent.IsEating)
+                    status = "Eating";
+                else if (agent.Stamina <= Agent.EXHAUSTED_THRESHOLD)
+                    status = "Exhausted";
+                else if (agent.Food <= Agent.HUNGRY_THRESHOLD)
+                    status = "Hungry";
+                else if (agent.Rest <= Agent.TIRED_THRESHOLD)
+                    status = "Tired";
+                    
+                item.SubItems.Add(status);
+                item.SubItems.Add(agent.CurrentThought ?? "");
+                
+                // Color coding based on status
+                if (agent.IsResting || agent.IsEating)
+                    item.BackColor = Color.LightBlue;
+                else if (status == "Exhausted")
+                    item.BackColor = Color.LightCoral;
+                else if (status == "Hungry" || status == "Tired")
+                    item.BackColor = Color.LightYellow;
+                else
+                    item.BackColor = Color.LightGreen;
+                
+                listViewAgents.Items.Add(item);
+            }
+        }
+
         private void UpdateLifeSupportDisplay()
         {
             if (simulation == null) return;
@@ -657,6 +723,7 @@ namespace AgentSimulation.UI
         private void UpdateUI()
         {
             UpdateTasksList();
+            UpdateAgentsList();
             UpdateLifeSupportDisplay();
             UpdateEffectsList();
         }

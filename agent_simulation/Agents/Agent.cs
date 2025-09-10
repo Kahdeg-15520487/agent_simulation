@@ -16,11 +16,28 @@ public class Agent
     public string CurrentThought { get; set; }
     public Simulation? Simulation { get; set; }
 
+    // Resource management properties
+    public int Stamina { get; set; } = 100; // 0-100, affects work efficiency
+    public int Food { get; set; } = 100; // 0-100, decreases over time
+    public int Rest { get; set; } = 100; // 0-100, affects stamina recovery
+    public bool IsResting { get; set; } = false; // Whether agent is currently resting
+    public bool IsEating { get; set; } = false; // Whether agent is currently eating
+    
+    // Status thresholds
+    public const int EXHAUSTED_THRESHOLD = 20;
+    public const int HUNGRY_THRESHOLD = 30;
+    public const int TIRED_THRESHOLD = 25;
+
     public Agent(string name, string personality)
     {
         Name = name;
         Personality = personality;
         CurrentThought = "";
+        Stamina = 100;
+        Food = 100;
+        Rest = 100;
+        IsResting = false;
+        IsEating = false;
     }
 
     public virtual string Think(Scenario scenario)
@@ -128,5 +145,62 @@ public class Agent
         }
 
         return logs.ToString();
+    }
+
+    public virtual void ConsumeResources()
+    {
+        // Base consumption rates
+        Stamina = Math.Max(0, Stamina - 5);  // Lose 5 stamina per action
+        Food = Math.Max(0, Food - 3);        // Lose 3 food per action
+        Rest = Math.Max(0, Rest - 2);        // Lose 2 rest per action
+    }
+
+    public virtual void TakeRest()
+    {
+        if (!IsResting)
+        {
+            IsResting = true;
+            CurrentThought = "Taking a rest to recover stamina and rest...";
+        }
+        
+        // Recover when resting
+        Stamina = Math.Min(100, Stamina + 15);
+        Rest = Math.Min(100, Rest + 20);
+        Food = Math.Max(0, Food - 1);  // Still lose a little food while resting
+    }
+
+    public virtual void Eat()
+    {
+        if (!IsEating)
+        {
+            IsEating = true;
+            CurrentThought = "Eating to restore food and energy...";
+        }
+        
+        // Recover when eating
+        Food = Math.Min(100, Food + 25);
+        Stamina = Math.Min(100, Stamina + 5);  // Small stamina boost from eating
+        Rest = Math.Max(0, Rest - 1);  // Still lose a little rest while eating
+    }
+
+    public virtual bool NeedsRest()
+    {
+        return Stamina <= EXHAUSTED_THRESHOLD || Rest <= TIRED_THRESHOLD;
+    }
+
+    public virtual bool NeedsFood()
+    {
+        return Food <= HUNGRY_THRESHOLD;
+    }
+
+    public virtual bool CanWork()
+    {
+        return Stamina > 0 && Food > 0 && Rest > 0;
+    }
+
+    public virtual void FinishRestingOrEating()
+    {
+        IsResting = false;
+        IsEating = false;
     }
 }
